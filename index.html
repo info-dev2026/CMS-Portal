@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Saaphzone CSMS — Charge Management (Demo)</title>
+<style>
+:root{
+  --navy:#0C2A45;--navy-2:#123A5E;--navy-3:#0a2438;
+  --teal:#1B9DD3;--teal-bright:#33B4E6;--paper:#EEF3F6;--panel:#fff;
+  --line:#dbe6ec;--line-dark:#1b3b57;--muted:#6a7d8f;--muted-2:#8fa3b3;
+  --ok:#1FA971;--warn:#E8A33D;--danger:#E15241;--radius:12px;
+  --mono:"SF Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;
+  --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--sans);background:var(--paper);color:#0C1620;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input,select{font-family:inherit;font-size:14px}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+
+/* LOGIN */
+.login-wrap{min-height:100vh;display:grid;place-items:center;background:radial-gradient(800px 400px at 70% 10%,rgba(27,157,211,.25),transparent 60%),linear-gradient(160deg,#0C2A45,#0a2438)}
+.login-card{width:380px;max-width:92vw;background:var(--panel);border-radius:16px;padding:34px 32px;box-shadow:0 30px 70px rgba(0,0,0,.4)}
+.brand{display:flex;align-items:center;gap:12px}
+.brand .mark{width:40px;height:40px;flex:none;object-fit:contain;border-radius:6px}
+.brand b{font-size:18px;font-weight:800;color:var(--navy);letter-spacing:-.01em}
+.brand span{display:block;font-size:9px;letter-spacing:.18em;color:var(--teal);text-transform:uppercase;font-weight:700}
+.login-title{font-size:13px;color:var(--muted);margin:14px 0 22px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px}
+.field input,.field select{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:8px;background:#fbfdfe}
+.field input:focus{border-color:var(--teal);background:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 18px;border-radius:8px;font-weight:700;font-size:14px;transition:.15s;white-space:nowrap}
+.btn-primary{background:var(--teal);color:#042330}.btn-primary:hover{background:var(--teal-bright)}
+.btn-block{width:100%}
+.btn-ghost{border:1px solid var(--line);color:var(--navy);background:#fff}.btn-ghost:hover{border-color:var(--teal)}
+.btn-danger{background:rgba(225,82,65,.12);color:var(--danger)}.btn-danger:hover{background:rgba(225,82,65,.2)}
+.btn-sm{padding:6px 11px;font-size:12.5px;border-radius:6px}
+.login-err{background:rgba(225,82,65,.1);color:var(--danger);padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:16px;display:none}
+.login-err.show{display:block}
+.login-hint{margin-top:20px;font-size:11.5px;color:var(--muted-2);line-height:1.7;border-top:1px solid var(--line);padding-top:14px}
+.login-hint b{color:var(--navy)}
+.demo-note{background:rgba(232,163,61,.12);color:#8a5a12;font-size:11px;padding:9px 11px;border-radius:8px;margin-bottom:16px;line-height:1.5}
+
+/* SHELL */
+.shell{display:grid;grid-template-columns:238px 1fr;min-height:100vh}
+.sidebar{background:linear-gradient(180deg,#0C2A45,#0a2438);color:#cfe0ec;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;padding:20px 14px}
+.sb-brand{display:flex;align-items:center;gap:11px;padding:6px 8px 20px;border-bottom:1px solid var(--line-dark);margin-bottom:14px}
+.sb-brand .mark{width:34px;height:34px;flex:none;object-fit:contain;border-radius:6px}
+.sb-brand b{font-size:15px;color:#fff;font-weight:800;line-height:1}
+.sb-brand span{display:block;font-size:8px;letter-spacing:.16em;color:var(--teal-bright);text-transform:uppercase;font-weight:700;margin-top:3px}
+.nav{display:flex;flex-direction:column;gap:3px;flex:1}
+.nav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:8px;color:#a8c2d6;font-weight:600;font-size:13.5px;transition:.12s;cursor:pointer}
+.nav a .ico{width:17px;height:17px;flex:none;opacity:.85}
+.nav a:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav a.active{background:var(--teal);color:#042330}
+.nav .sep{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#5c7a92;padding:14px 12px 6px;font-weight:700}
+.sb-user{border-top:1px solid var(--line-dark);padding-top:14px;margin-top:8px}
+.sb-user .who{display:flex;align-items:center;gap:10px;padding:4px 8px}
+.sb-user .avatar{width:32px;height:32px;border-radius:8px;background:var(--teal);color:#042330;display:grid;place-items:center;font-weight:800;font-size:13px}
+.sb-user .who b{font-size:13px;color:#fff;display:block;line-height:1.2}
+.sb-user .who span{font-size:10.5px;color:var(--teal-bright);text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+.sb-user .logout{margin-top:10px;width:100%;padding:8px;border-radius:7px;color:#a8c2d6;font-size:12.5px;font-weight:600;border:1px solid var(--line-dark)}
+.sb-user .logout:hover{background:rgba(225,82,65,.14);color:#ff8c7f;border-color:transparent}
+
+.main{padding:24px 28px;min-width:0}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.topbar h1{font-size:22px;font-weight:800;color:var(--navy);letter-spacing:-.02em}
+.topbar .sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+.topbar-actions{display:flex;gap:10px;align-items:center}
+.live-dot{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--muted)}
+.live-dot i{width:8px;height:8px;border-radius:50%;background:var(--ok);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(31,169,113,.5)}70%{box-shadow:0 0 0 7px rgba(31,169,113,0)}100%{box-shadow:0 0 0 0 rgba(31,169,113,0)}}
+
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;position:relative;overflow:hidden}
+.stat .label{font-size:11.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.stat .value{font-size:30px;font-weight:800;color:var(--navy);letter-spacing:-.03em;margin-top:6px;font-variant-numeric:tabular-nums}
+.stat .value small{font-size:14px;color:var(--muted);font-weight:600}
+.stat .accent{position:absolute;top:0;left:0;width:4px;height:100%;background:var(--teal)}
+.stat.ok .accent{background:var(--ok)}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:20px;overflow:hidden}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:15px 20px;border-bottom:1px solid var(--line)}
+.panel-head h2{font-size:15px;font-weight:800;color:var(--navy)}
+.panel-head .desc{font-size:12px;color:var(--muted);margin-top:1px}
+.panel-body{padding:16px 20px}
+.panel-body.flush{padding:0;overflow-x:auto}
+
+table{width:100%;border-collapse:collapse}
+thead th{text-align:left;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:11px 20px;border-bottom:1px solid var(--line);background:#f7fafb}
+tbody td{padding:12px 20px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#f7fafb}
+tbody td:last-child{white-space:nowrap}
+.mono{font-family:var(--mono);font-size:12px}
+.cellmuted{color:var(--muted)}
+
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.badge i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.b-ok{background:rgba(31,169,113,.13);color:#127a50}
+.b-charging{background:rgba(27,157,211,.14);color:#0f6f96}
+.b-warn{background:rgba(232,163,61,.16);color:#96631a}
+.b-danger{background:rgba(225,82,65,.13);color:#b23628}
+.b-muted{background:rgba(106,125,143,.14);color:#586b7c}
+.b-admin{background:rgba(12,42,69,.1);color:var(--navy)}
+.b-cpo{background:rgba(27,157,211,.14);color:#0f6f96}
+.b-emsp{background:rgba(139,92,246,.14);color:#6d3fc0}
+.b-driver{background:rgba(31,169,113,.13);color:#127a50}
+
+.modal-back{position:fixed;inset:0;background:rgba(12,26,42,.55);display:grid;place-items:center;z-index:100;padding:20px}
+.modal{background:#fff;border-radius:14px;width:440px;max-width:94vw;max-height:90vh;overflow:auto;box-shadow:0 30px 80px rgba(0,0,0,.4)}
+.modal-head{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.modal-head h3{font-size:16px;font-weight:800;color:var(--navy)}
+.modal-head .x{color:var(--muted);font-size:22px;line-height:1;padding:2px 6px;border-radius:6px}
+.modal-head .x:hover{background:var(--paper)}
+.modal-body{padding:20px 22px}
+.modal-foot{padding:14px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-note{font-size:12px;color:var(--muted);background:var(--paper);padding:10px 12px;border-radius:8px;margin-top:6px}
+.secret-box{font-family:var(--mono);font-size:13px;background:var(--navy-3);color:#7fe0c8;padding:12px 14px;border-radius:8px;word-break:break-all;margin-top:8px}
+.row-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.empty{text-align:center;padding:44px 20px;color:var(--muted)}
+.empty b{display:block;color:var(--navy);font-size:15px;margin-bottom:4px}
+.chart{display:flex;align-items:flex-end;gap:8px;height:150px;padding:12px 4px 0}
+.chart .bar{flex:1;background:linear-gradient(180deg,var(--teal-bright),var(--teal));border-radius:5px 5px 0 0;min-height:4px;position:relative}
+.chart .bar span{position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:10px;color:var(--muted)}
+.chart .bar b{position:absolute;top:-18px;left:0;right:0;text-align:center;font-size:10px;color:var(--navy);font-weight:700;opacity:0}
+.chart .bar:hover b{opacity:1}
+.toast-wrap{position:fixed;bottom:22px;right:22px;display:flex;flex-direction:column;gap:10px;z-index:200}
+.toast{background:var(--navy);color:#fff;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 10px 30px rgba(12,42,69,.2);min-width:220px;animation:slidein .25s}
+.toast.ok{background:var(--ok)}.toast.err{background:var(--danger)}
+@keyframes slidein{from{transform:translateX(20px);opacity:0}to{transform:none;opacity:1}}
+.pw-meter{height:5px;border-radius:3px;background:var(--line);margin-top:8px;overflow:hidden}
+.pw-meter i{display:block;height:100%;width:0;transition:.2s;border-radius:3px}
+.ribbon{background:rgba(232,163,61,.14);border:1px solid rgba(232,163,61,.3);color:#8a5a12;font-size:12px;padding:9px 14px;border-radius:8px;margin-bottom:18px}
+@media(max-width:860px){.shell{grid-template-columns:1fr}.sidebar{position:fixed;left:-260px;z-index:50;transition:.2s}.sidebar.open{left:0}.main{padding:18px 16px}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" class="toast-wrap"></div>
+
+<script>
+/* ============================================================
+   Saaphzone CSMS — single-file browser demo
+   In-memory data only. No backend, no real security.
+   For the secured production platform, use the full-stack build.
+   ============================================================ */
+(() => {
+  const app = document.getElementById('app');
+  const esc = s => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const money = n => '₹' + (n||0).toLocaleString('en-IN',{maximumFractionDigits:2});
+
+  const mark = `<img class="mark" alt="Saaphzone" src="data:image/jpeg;base64,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">`;
+
+  const icons = {
+    dashboard:'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>',
+    chargers:'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="3" width="10" height="18" rx="2"/><path d="M10 8l-2 4h3l-2 4"/><path d="M15 9h3v6a2 2 0 0 1-4 0"/></svg>',
+    sessions:'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+    tariffs:'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12l-8 8-9-9V4h7z"/><circle cx="7.5" cy="7.5" r="1.5" fill="currentColor"/></svg>',
+    tokens:'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="8" cy="12" r="2"/><path d="M13 10h5M13 14h5"/></svg>',
+    users:'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 6a3 3 0 0 1 0 6M21 20a6 6 0 0 0-4-5.6"/></svg>',
+    orgs:'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="8" width="8" height="13"/><rect x="13" y="3" width="8" height="18"/></svg>',
+    ocpi:'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>',
+    audit:'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3h11l4 4v14H5z"/><path d="M9 10h7M9 14h7M9 18h4"/></svg>',
+  };
+
+  // ---------- Demo accounts (client-side only) ----------
+  const ACCOUNTS = {
+    'admin@saaphzone.com':{pw:'Admin@Saaph2026',name:'Administrator',role:'ADMIN',org:null},
+    'cpo@saaphzone.com':{pw:'Cpo@Saaph2026',name:'CPO Operator',role:'CPO',org:'Saaphzone CPO'},
+    'emsp@saaphzone.com':{pw:'Emsp@Saaph2026',name:'eMSP Partner',role:'EMSP',org:'Saaphzone eMSP'},
+    'driver@saaphzone.com':{pw:'Driver@Saaph2026',name:'Demo Driver',role:'DRIVER',org:null},
+  };
+
+  // ---------- In-memory data ----------
+  let db, user=null, route='dashboard', liveTimer=null;
+  function seed(){
+    db = {
+      orgs:[{id:1,name:'Saaphzone CPO',type:'CPO',party:'SPZ'},{id:2,name:'Saaphzone eMSP',type:'EMSP',party:'SPE'}],
+      users:[
+        {id:1,name:'Administrator',email:'admin@saaphzone.com',role:'ADMIN',org:null,status:'ACTIVE'},
+        {id:2,name:'CPO Operator',email:'cpo@saaphzone.com',role:'CPO',org:'Saaphzone CPO',status:'ACTIVE'},
+        {id:3,name:'eMSP Partner',email:'emsp@saaphzone.com',role:'EMSP',org:'Saaphzone eMSP',status:'ACTIVE'},
+        {id:4,name:'Demo Driver',email:'driver@saaphzone.com',role:'DRIVER',org:null,status:'ACTIVE'},
+      ],
+      chargers:[
+        {id:1,cpId:'SPZ-DC-001',name:'Pitampura DC 60',org:'Saaphzone CPO',status:'Available',online:true,power:60,type:'DC',hb:Date.now()},
+        {id:2,cpId:'SPZ-DC-002',name:'Connaught Place DC 120',org:'Saaphzone CPO',status:'Charging',online:true,power:120,type:'DC',hb:Date.now()},
+        {id:3,cpId:'SPZ-AC-003',name:'Saket AC 22',org:'Saaphzone CPO',status:'Available',online:true,power:22,type:'AC',hb:Date.now()},
+        {id:4,cpId:'SPZ-AC-004',name:'Rohini AC 11',org:'Saaphzone CPO',status:'Faulted',online:false,power:11,type:'AC',hb:Date.now()-3600000},
+      ],
+      tariffs:[
+        {id:1,name:'Standard DC',kwh:18,min:0,fee:10,active:true},
+        {id:2,name:'Premium DC Fast',kwh:22,min:0,fee:15,active:true},
+        {id:3,name:'AC Home',kwh:9,min:0,fee:0,active:false},
+      ],
+      tokens:[
+        {id:1,tag:'RFID-0001',status:'Accepted',user:'Demo Driver'},
+        {id:2,tag:'RFID-0002',status:'Accepted',user:''},
+        {id:3,tag:'RFID-BLOCK',status:'Blocked',user:''},
+      ],
+      ocpi:[
+        {id:1,label:'ChargeGrid India',party:'CGI',cc:'IN',role:'RECEIVER',active:true},
+        {id:2,label:'eDrive Roaming',party:'EDR',cc:'IN',role:'RECEIVER',active:true},
+      ],
+      sessions:[], audit:[], txCounter:100000,
+    };
+    // seed sessions across last 7 days
+    const now=Date.now();
+    for(let d=6;d>=0;d--){
+      const cnt=2+Math.floor(Math.random()*4);
+      for(let i=0;i<cnt;i++){
+        const cp=db.chargers[Math.floor(Math.random()*db.chargers.length)];
+        const kwh=+(5+Math.random()*40).toFixed(2);
+        const start=now-d*86400000-Math.floor(Math.random()*72000000);
+        const dur=Math.floor(600+Math.random()*4200);
+        const t=db.tariffs[0];
+        db.sessions.push({id:++db.txCounter,cp:cp.name,cpId:cp.cpId,tag:'RFID-000'+(1+Math.floor(Math.random()*2)),
+          kwh,cost:+(kwh*t.kwh+t.fee).toFixed(2),start,dur,status:'COMPLETED'});
+      }
+    }
+    // one active session
+    db.sessions.push({id:++db.txCounter,cp:'Connaught Place DC 120',cpId:'SPZ-DC-002',tag:'RFID-0001',kwh:12.4,cost:0,start:now-900000,dur:900,status:'ACTIVE'});
+    audit('SYSTEM_SEED','Demo data initialised');
+  }
+  function audit(action,detail,entity){ db.audit.unshift({time:Date.now(),actor:user?user.email:'system',action,detail:detail||'',entity:entity||''}); }
+
+  // ---------- toast / modal ----------
+  function toast(msg,kind){ const w=document.getElementById('toast');const e=document.createElement('div');e.className='toast '+(kind||'');e.textContent=msg;w.appendChild(e);setTimeout(()=>{e.style.opacity='0';e.style.transform='translateX(20px)';e.style.transition='.25s';setTimeout(()=>e.remove(),250)},3000); }
+  function modal({title,body,foot,mount}){
+    const back=document.createElement('div');back.className='modal-back';
+    back.innerHTML=`<div class="modal"><div class="modal-head"><h3>${esc(title)}</h3><button class="x" data-close>&times;</button></div><div class="modal-body">${body}</div>${foot?`<div class="modal-foot">${foot}</div>`:''}</div>`;
+    document.body.appendChild(back);
+    const close=()=>back.remove();
+    back.addEventListener('click',e=>{if(e.target===back||e.target.hasAttribute('data-close'))close()});
+    if(mount)mount(back,close);return{close};
+  }
+  function confirmDialog(msg,onYes){ modal({title:'Confirm',body:`<p style="font-size:14px">${esc(msg)}</p>`,foot:`<button class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-danger" data-yes>Confirm</button>`,mount:(r,c)=>r.querySelector('[data-yes]').onclick=()=>{c();onYes()}}); }
+  const roleBadge=r=>`<span class="badge b-${r.toLowerCase()}">${r}</span>`;
+  function statusBadge(s,online){s=(s||'').toLowerCase();if(online===false)return`<span class="badge b-muted"><i></i>Offline</span>`;if(s==='charging')return`<span class="badge b-charging"><i></i>Charging</span>`;if(s==='available')return`<span class="badge b-ok"><i></i>Available</span>`;if(s==='faulted')return`<span class="badge b-danger"><i></i>Faulted</span>`;return`<span class="badge b-muted"><i></i>${s}</span>`;}
+
+  // ---------- NAV ----------
+  const NAV=[
+    {id:'dashboard',label:'Dashboard',icon:'dashboard',roles:['ADMIN','CPO','EMSP','DRIVER']},
+    {id:'chargers',label:'Charge Points',icon:'chargers',roles:['ADMIN','CPO','EMSP']},
+    {id:'sessions',label:'Sessions',icon:'sessions',roles:['ADMIN','CPO','EMSP','DRIVER']},
+    {id:'tariffs',label:'Tariffs',icon:'tariffs',roles:['ADMIN','CPO']},
+    {id:'tokens',label:'RFID / Tokens',icon:'tokens',roles:['ADMIN','CPO','EMSP']},
+    {sep:'Administration'},
+    {id:'users',label:'Users',icon:'users',roles:['ADMIN']},
+    {id:'orgs',label:'Organizations',icon:'orgs',roles:['ADMIN']},
+    {id:'ocpi',label:'OCPI Roaming',icon:'ocpi',roles:['ADMIN']},
+    {id:'audit',label:'Audit Log',icon:'audit',roles:['ADMIN']},
+  ];
+
+  // ---------- LOGIN ----------
+  function renderLogin(){
+    app.innerHTML=`<div class="login-wrap"><div class="login-card">
+      <div class="brand">${mark}<div><b>SAAPHZONE</b><span>CSMS Control</span></div></div>
+      <div class="login-title">Charge Management System — sign in to continue</div>
+      <div class="demo-note">Demo build — runs entirely in your browser with sample data. Not the secured production system.</div>
+      <div class="login-err" id="lerr"></div>
+      <div class="field"><label>Email</label><input type="email" id="email" value="admin@saaphzone.com"></div>
+      <div class="field"><label>Password</label><input type="password" id="password" value="Admin@Saaph2026"></div>
+      <button class="btn btn-primary btn-block" id="lbtn">Sign in</button>
+      <div class="login-hint"><b>Demo accounts</b><br>
+        admin@saaphzone.com · Admin@Saaph2026<br>
+        cpo@saaphzone.com · Cpo@Saaph2026<br>
+        emsp@saaphzone.com · Emsp@Saaph2026<br>
+        driver@saaphzone.com · Driver@Saaph2026</div></div></div>`;
+    const err=document.getElementById('lerr');
+    const go=()=>{
+      const em=document.getElementById('email').value.trim().toLowerCase();
+      const pw=document.getElementById('password').value;
+      const acc=ACCOUNTS[em];
+      if(!acc||acc.pw!==pw){err.textContent='Invalid credentials';err.classList.add('show');return;}
+      user={email:em,name:acc.name,role:acc.role,org:acc.org};
+      if(!db)seed();
+      audit('LOGIN_SUCCESS','');
+      renderShell();
+    };
+    document.getElementById('lbtn').onclick=go;
+    document.getElementById('password').addEventListener('keydown',e=>{if(e.key==='Enter')go()});
+  }
+
+  // ---------- SHELL ----------
+  function renderShell(){
+    const items=NAV.filter(n=>n.sep||n.roles.includes(user.role));
+    const navHTML=items.map(n=>{
+      if(n.sep)return user.role==='ADMIN'?`<div class="sep">${n.sep}</div>`:'';
+      return `<a data-route="${n.id}">${icons[n.icon]}<span>${n.label}</span></a>`;
+    }).join('');
+    app.innerHTML=`<div class="shell">
+      <aside class="sidebar">
+        <div class="sb-brand">${mark}<div><b>SAAPHZONE</b><span>CSMS Control</span></div></div>
+        <nav class="nav" id="nav">${navHTML}</nav>
+        <div class="sb-user"><div class="who"><div class="avatar">${esc(user.name[0])}</div><div><b>${esc(user.name)}</b><span>${user.role}</span></div></div>
+          <button class="logout" id="logout">Sign out</button></div>
+      </aside>
+      <main class="main" id="view"></main></div>`;
+    document.getElementById('logout').onclick=()=>{if(liveTimer)clearInterval(liveTimer);user=null;renderLogin();};
+    document.getElementById('nav').addEventListener('click',e=>{const a=e.target.closest('a[data-route]');if(a)navigate(a.dataset.route);});
+    startLive();
+    navigate('dashboard');
+  }
+  function setActive(r){document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('active',a.dataset.route===r));}
+  function navigate(r){const it=NAV.find(n=>n.id===r);if(!it||!it.roles.includes(user.role))r='dashboard';route=r;setActive(r);(views[r]||views.dashboard)();}
+  function topbar(t,s,a){return `<div class="topbar"><div><h1>${esc(t)}</h1>${s?`<div class="sub">${esc(s)}</div>`:''}</div><div class="topbar-actions"><span class="live-dot"><i></i>Live</span>${a||''}</div></div>`;}
+
+  // ---------- LIVE SIMULATION ----------
+  function startLive(){
+    if(liveTimer)clearInterval(liveTimer);
+    liveTimer=setInterval(()=>{
+      // advance active sessions
+      db.sessions.filter(s=>s.status==='ACTIVE').forEach(s=>{
+        s.dur+=3;s.kwh=+(s.kwh+ (Math.random()*0.05)).toFixed(2);
+        const t=db.tariffs[0];s.cost=+(s.kwh*t.kwh+t.fee).toFixed(2);
+      });
+      // occasional status flip
+      if(Math.random()<0.15){const c=db.chargers[Math.floor(Math.random()*db.chargers.length)];if(c.online&&c.status!=='Faulted')c.status=c.status==='Charging'?'Available':'Charging';}
+      if(route==='dashboard'||route==='chargers'||route==='sessions')(views[route])(true);
+    },3000);
+  }
+
+  // ============================================================ VIEWS
+  const views={};
+  const V=()=>document.getElementById('view');
+
+  views.dashboard=()=>{
+    const cps=scopedChargers();
+    const online=cps.filter(c=>c.online).length;
+    const active=db.sessions.filter(s=>s.status==='ACTIVE').length;
+    const energy=+db.sessions.reduce((a,s)=>a+s.kwh,0).toFixed(1);
+    const revenue=+db.sessions.reduce((a,s)=>a+s.cost,0).toFixed(0);
+    // 7-day trend
+    const days={};const now=new Date();
+    for(let d=6;d>=0;d--){const dt=new Date(now-d*86400000);days[dt.toISOString().slice(0,10)]={e:0,label:dt.toLocaleDateString('en',{weekday:'short'})};}
+    db.sessions.forEach(s=>{const k=new Date(s.start).toISOString().slice(0,10);if(days[k])days[k].e+=s.kwh;});
+    const arr=Object.values(days);const max=Math.max(1,...arr.map(d=>d.e));
+    const bars=arr.map(d=>`<div class="bar" style="height:${Math.max(4,Math.round(d.e/max*130))}px"><b>${d.e.toFixed(1)}</b><span>${d.label}</span></div>`).join('');
+    V().innerHTML=`${topbar('Dashboard',`Network overview · ${user.role==='ADMIN'?'All organizations':(user.org||'Your account')}`)}
+      <div class="stat-grid">
+        <div class="stat"><div class="accent"></div><div class="label">Charge Points</div><div class="value">${cps.length}</div></div>
+        <div class="stat ok"><div class="accent"></div><div class="label">Online Now</div><div class="value">${online}<small> / ${cps.length}</small></div></div>
+        <div class="stat"><div class="accent"></div><div class="label">Active Sessions</div><div class="value">${active}</div></div>
+        <div class="stat"><div class="accent"></div><div class="label">Energy Delivered</div><div class="value">${energy}<small> kWh</small></div></div>
+        <div class="stat ok"><div class="accent"></div><div class="label">Revenue</div><div class="value"><small>₹</small>${revenue.toLocaleString('en-IN')}</div></div>
+        <div class="stat"><div class="accent"></div><div class="label">Total Sessions</div><div class="value">${db.sessions.length}</div></div>
+      </div>
+      <div class="panel"><div class="panel-head"><div><h2>Energy — last 7 days</h2><div class="desc">Daily kWh delivered across the network</div></div></div>
+        <div class="panel-body"><div class="chart">${bars}</div></div></div>`;
+  };
+
+  function scopedChargers(){return user.role==='ADMIN'?db.chargers:db.chargers.filter(c=>!user.org||c.org===user.org);}
+
+  views.chargers=(silent)=>{
+    const cps=scopedChargers();
+    const canAdd=['ADMIN','CPO'].includes(user.role);
+    const rows=cps.map(c=>`<tr>
+      <td><b>${esc(c.name)}</b><div class="cellmuted mono">${esc(c.cpId)}</div></td>
+      <td>${statusBadge(c.status,c.online)}</td>
+      <td class="cellmuted">${esc(c.org)}</td>
+      <td class="cellmuted">${c.power} kW · ${c.type}</td>
+      <td class="cellmuted mono">${new Date(c.hb).toLocaleString('en-IN')}</td>
+      <td class="row-actions">
+        ${['ADMIN','CPO'].includes(user.role)?`<button class="btn btn-ghost btn-sm" data-start="${c.id}">Start</button><button class="btn btn-ghost btn-sm" data-stop="${c.id}">Stop</button>`:''}
+        ${user.role==='ADMIN'?`<button class="btn btn-ghost btn-sm" data-reset="${c.id}">Reset</button><button class="btn btn-danger btn-sm" data-del="${c.id}">Delete</button>`:''}
+      </td></tr>`).join('');
+    V().innerHTML=`${topbar('Charge Points','Live station status and remote control',canAdd?`<button class="btn btn-primary" id="addCp">+ Add charge point</button>`:'')}
+      <div class="panel"><div class="panel-body flush"><table><thead><tr><th>Station</th><th>Status</th><th>Organization</th><th>Rating</th><th>Last Heartbeat</th><th></th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="6"><div class="empty"><b>No charge points</b>Add your first station.</div></td></tr>'}</tbody></table></div></div>`;
+    if(canAdd)document.getElementById('addCp').onclick=addCharger;
+    V().querySelectorAll('[data-start]').forEach(b=>b.onclick=()=>{const c=db.chargers.find(x=>x.id==b.dataset.start);c.status='Charging';audit('CP_REMOTE_START',c.cpId,'charge_point');toast('Remote start sent to '+c.cpId,'ok');views.chargers();});
+    V().querySelectorAll('[data-stop]').forEach(b=>b.onclick=()=>{const c=db.chargers.find(x=>x.id==b.dataset.stop);c.status='Available';audit('CP_REMOTE_STOP',c.cpId,'charge_point');toast('Remote stop sent to '+c.cpId,'ok');views.chargers();});
+    V().querySelectorAll('[data-reset]').forEach(b=>b.onclick=()=>confirmDialog('Send a Soft Reset to this charge point?',()=>{const c=db.chargers.find(x=>x.id==b.dataset.reset);audit('CP_RESET',c.cpId,'charge_point');toast('Reset sent','ok');}));
+    V().querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>confirmDialog('Delete this charge point?',()=>{const c=db.chargers.find(x=>x.id==b.dataset.del);db.chargers=db.chargers.filter(x=>x.id!=b.dataset.del);audit('CP_DELETE',c.cpId,'charge_point');toast('Charge point deleted','ok');views.chargers();}));
+  };
+  function addCharger(){
+    modal({title:'Add Charge Point',
+      body:`<div class="field"><label>OCPP identity (cp_id)</label><input id="cid" placeholder="SPZ-DC-005"></div>
+        <div class="field"><label>Display name</label><input id="cname" placeholder="New Delhi DC 60"></div>
+        <div class="form-row"><div class="field"><label>Power (kW)</label><input type="number" id="cpow" value="60"></div>
+        <div class="field"><label>Type</label><select id="ctype"><option>DC</option><option>AC</option></select></div></div>
+        <div class="form-note">On save, a one-time OCPP auth secret is generated (simulated here). In production, configure it on the charger for secure connection.</div>`,
+      foot:`<button class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-primary" data-go>Create</button>`,
+      mount:(r,c)=>r.querySelector('[data-go]').onclick=()=>{
+        const cid=r.querySelector('#cid').value.trim();if(!cid)return toast('cp_id required','err');
+        const id=Math.max(0,...db.chargers.map(x=>x.id))+1;
+        db.chargers.push({id,cpId:cid,name:r.querySelector('#cname').value.trim()||cid,org:user.org||'Saaphzone CPO',status:'Unavailable',online:false,power:+r.querySelector('#cpow').value,type:r.querySelector('#ctype').value,hb:Date.now()});
+        const secret=Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b=>b.toString(16).padStart(2,'0')).join('');
+        audit('CP_CREATE',cid,'charge_point');c();
+        modal({title:'Charge point created',body:`<p style="font-size:13px;color:var(--muted);margin-bottom:6px">Store this OCPP auth secret now — shown once.</p>
+          <div class="field"><label>OCPP WebSocket URL</label><div class="secret-box">ws://&lt;host&gt;:9220/ocpp/${esc(cid)}</div></div>
+          <div class="field"><label>Auth secret</label><div class="secret-box">${secret}</div></div>`,foot:`<button class="btn btn-primary" data-close>Done</button>`});
+        views.chargers();
+      }});
+  }
+
+  views.sessions=(silent)=>{
+    const list=[...db.sessions].sort((a,b)=>b.start-a.start);
+    const rows=list.map(s=>`<tr><td class="mono">#${s.id}</td><td><b>${esc(s.cp)}</b><div class="cellmuted mono">${esc(s.cpId)}</div></td>
+      <td class="mono">${esc(s.tag)}</td><td>${s.kwh.toFixed(2)} kWh</td><td>${money(s.cost)}</td>
+      <td class="cellmuted mono">${new Date(s.start).toLocaleString('en-IN')}</td>
+      <td>${s.status==='ACTIVE'?'<span class="badge b-charging"><i></i>Active</span>':'<span class="badge b-ok">Completed</span>'}</td></tr>`).join('');
+    V().innerHTML=`${topbar('Sessions','Charging transactions and billing')}
+      <div class="panel"><div class="panel-body flush"><table><thead><tr><th>ID</th><th>Station</th><th>Token</th><th>Energy</th><th>Cost</th><th>Started</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  };
+
+  views.tariffs=()=>{
+    const rows=db.tariffs.map(t=>`<tr><td><b>${esc(t.name)}</b> ${t.active?'<span class="badge b-ok">Active</span>':'<span class="badge b-muted">Inactive</span>'}</td>
+      <td>${money(t.kwh)}<span class="cellmuted"> /kWh</span></td><td>${money(t.min)}<span class="cellmuted"> /min</span></td><td>${money(t.fee)}</td>
+      <td class="row-actions"><button class="btn btn-ghost btn-sm" data-edit="${t.id}">Edit</button>${user.role==='ADMIN'?`<button class="btn btn-danger btn-sm" data-del="${t.id}">Delete</button>`:''}</td></tr>`).join('');
+    V().innerHTML=`${topbar('Tariffs','Pricing applied to charging sessions',`<button class="btn btn-primary" id="addT">+ New tariff</button>`)}
+      <div class="panel"><div class="panel-body flush"><table><thead><tr><th>Name</th><th>Per kWh</th><th>Per minute</th><th>Session fee</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    document.getElementById('addT').onclick=()=>tariffModal();
+    V().querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>tariffModal(db.tariffs.find(t=>t.id==b.dataset.edit)));
+    V().querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>confirmDialog('Delete this tariff?',()=>{db.tariffs=db.tariffs.filter(t=>t.id!=b.dataset.del);audit('TARIFF_DELETE','');toast('Tariff deleted','ok');views.tariffs();}));
+  };
+  function tariffModal(t){const edit=!!t;
+    modal({title:edit?'Edit tariff':'New tariff',
+      body:`<div class="field"><label>Name</label><input id="tn" value="${edit?esc(t.name):''}"></div>
+        <div class="form-row"><div class="field"><label>Price /kWh (₹)</label><input type="number" step="0.01" id="tk" value="${edit?t.kwh:0}"></div>
+        <div class="field"><label>Price /min (₹)</label><input type="number" step="0.01" id="tm" value="${edit?t.min:0}"></div></div>
+        <div class="form-row"><div class="field"><label>Session fee (₹)</label><input type="number" step="0.01" id="tf" value="${edit?t.fee:0}"></div>
+        <div class="field"><label>Active</label><select id="ta"><option value="1" ${!edit||t.active?'selected':''}>Yes</option><option value="0" ${edit&&!t.active?'selected':''}>No</option></select></div></div>`,
+      foot:`<button class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-primary" data-go>${edit?'Save':'Create'}</button>`,
+      mount:(r,c)=>r.querySelector('[data-go]').onclick=()=>{
+        const o={name:r.querySelector('#tn').value.trim(),kwh:+r.querySelector('#tk').value,min:+r.querySelector('#tm').value,fee:+r.querySelector('#tf').value,active:r.querySelector('#ta').value==='1'};
+        if(edit)Object.assign(t,o);else db.tariffs.push({id:Math.max(0,...db.tariffs.map(x=>x.id))+1,...o});
+        audit(edit?'TARIFF_UPDATE':'TARIFF_CREATE',o.name);c();toast(edit?'Tariff saved':'Tariff created','ok');views.tariffs();
+      }});
+  }
+
+  views.tokens=()=>{
+    const rows=db.tokens.map(t=>`<tr><td class="mono"><b>${esc(t.tag)}</b></td>
+      <td>${t.status==='Accepted'?'<span class="badge b-ok">Accepted</span>':t.status==='Blocked'?'<span class="badge b-danger">Blocked</span>':'<span class="badge b-warn">'+t.status+'</span>'}</td>
+      <td class="cellmuted">${esc(t.user||'—')}</td>
+      <td class="row-actions">${t.status==='Accepted'?`<button class="btn btn-danger btn-sm" data-block="${t.id}">Block</button>`:`<button class="btn btn-ghost btn-sm" data-accept="${t.id}">Accept</button>`}${user.role==='ADMIN'?`<button class="btn btn-danger btn-sm" data-del="${t.id}">Delete</button>`:''}</td></tr>`).join('');
+    V().innerHTML=`${topbar('RFID / Tokens','Authorization tokens for charging',`<button class="btn btn-primary" id="addTok">+ Add token</button>`)}
+      <div class="panel"><div class="panel-body flush"><table><thead><tr><th>Token</th><th>Status</th><th>Assigned to</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    document.getElementById('addTok').onclick=()=>modal({title:'Add token',body:`<div class="field"><label>Token / RFID</label><input id="tk" placeholder="RFID-0003"></div>`,foot:`<button class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-primary" data-go>Add</button>`,mount:(r,c)=>r.querySelector('[data-go]').onclick=()=>{const v=r.querySelector('#tk').value.trim();if(!v)return;db.tokens.push({id:Math.max(0,...db.tokens.map(x=>x.id))+1,tag:v,status:'Accepted',user:''});audit('TOKEN_CREATE',v);c();toast('Token added','ok');views.tokens();}});
+    V().querySelectorAll('[data-block]').forEach(b=>b.onclick=()=>{db.tokens.find(t=>t.id==b.dataset.block).status='Blocked';audit('TOKEN_BLOCK','');toast('Token blocked','ok');views.tokens();});
+    V().querySelectorAll('[data-accept]').forEach(b=>b.onclick=()=>{db.tokens.find(t=>t.id==b.dataset.accept).status='Accepted';audit('TOKEN_ACCEPT','');toast('Token accepted','ok');views.tokens();});
+    V().querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>confirmDialog('Delete this token?',()=>{db.tokens=db.tokens.filter(t=>t.id!=b.dataset.del);toast('Deleted','ok');views.tokens();}));
+  };
+
+  views.users=()=>{
+    const rows=db.users.map(u=>`<tr><td><b>${esc(u.name)}</b><div class="cellmuted mono">${esc(u.email)}</div></td>
+      <td>${roleBadge(u.role)}</td><td class="cellmuted">${esc(u.org||'—')}</td>
+      <td>${u.status==='ACTIVE'?'<span class="badge b-ok">Active</span>':'<span class="badge b-danger">Suspended</span>'}</td>
+      <td class="row-actions"><button class="btn btn-ghost btn-sm" data-edit="${u.id}">Edit</button><button class="btn btn-ghost btn-sm" data-pw="${u.id}">Reset PW</button><button class="btn btn-danger btn-sm" data-del="${u.id}">Delete</button></td></tr>`).join('');
+    V().innerHTML=`${topbar('Users','Accounts and role-based access — admin only',`<button class="btn btn-primary" id="addU">+ New user</button>`)}
+      <div class="panel"><div class="panel-body flush"><table><thead><tr><th>User</th><th>Role</th><th>Organization</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    document.getElementById('addU').onclick=()=>userModal();
+    V().querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>userModal(db.users.find(u=>u.id==b.dataset.edit)));
+    V().querySelectorAll('[data-pw]').forEach(b=>b.onclick=()=>modal({title:'Reset password',body:`<div class="field"><label>New temporary password</label><input type="password" id="rp"><div class="form-note">User must change it on next login.</div></div>`,foot:`<button class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-primary" data-go>Reset</button>`,mount:(r,c)=>r.querySelector('[data-go]').onclick=()=>{audit('USER_PW_RESET','');c();toast('Password reset','ok');}}));
+    V().querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>confirmDialog('Delete this user?',()=>{const u=db.users.find(x=>x.id==b.dataset.del);if(u.role==='ADMIN'&&db.users.filter(x=>x.role==='ADMIN').length<=1)return toast('Cannot delete the last admin','err');db.users=db.users.filter(x=>x.id!=b.dataset.del);audit('USER_DELETE',u.email);toast('User deleted','ok');views.users();}));
+  };
+  function userModal(u){const edit=!!u;const ro=['ADMIN','CPO','EMSP','DRIVER'].map(r=>`<option ${edit&&u.role===r?'selected':''}>${r}</option>`).join('');
+    modal({title:edit?'Edit user':'New user',
+      body:`<div class="field"><label>Name</label><input id="un" value="${edit?esc(u.name):''}"></div>
+        ${edit?'':`<div class="field"><label>Email</label><input type="email" id="ue"></div><div class="field"><label>Temporary password</label><input type="password" id="up"><div class="form-note">Min 10 chars, mixed case, digit, symbol.</div></div>`}
+        <div class="form-row"><div class="field"><label>Role</label><select id="ur">${ro}</select></div>
+        <div class="field"><label>Organization</label><input id="uo" value="${edit&&u.org?esc(u.org):''}"></div></div>
+        ${edit?`<div class="field"><label>Status</label><select id="us"><option ${u.status==='ACTIVE'?'selected':''}>ACTIVE</option><option ${u.status==='SUSPENDED'?'selected':''}>SUSPENDED</option></select></div>`:''}`,
+      foot:`<button class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-primary" data-go>${edit?'Save':'Create'}</button>`,
+      mount:(r,c)=>r.querySelector('[data-go]').onclick=()=>{
+        if(edit){u.name=r.querySelector('#un').value.trim();u.role=r.querySelector('#ur').value;u.org=r.querySelector('#uo').value.trim()||null;u.status=r.querySelector('#us').value;audit('USER_UPDATE',u.email);}
+        else{const em=r.querySelector('#ue').value.trim().toLowerCase();if(!em)return toast('Email required','err');db.users.push({id:Math.max(0,...db.users.map(x=>x.id))+1,name:r.querySelector('#un').value.trim(),email:em,role:r.querySelector('#ur').value,org:r.querySelector('#uo').value.trim()||null,status:'ACTIVE'});audit('USER_CREATE',em);}
+        c();toast(edit?'User saved':'User created','ok');views.users();
+      }});
+  }
+
+  views.orgs=()=>{
+    const rows=db.orgs.map(o=>`<tr><td><b>${esc(o.name)}</b></td><td><span class="badge ${o.type==='CPO'?'b-cpo':'b-emsp'}">${o.type}</span></td><td class="mono">${esc(o.party)} / IN</td>
+      <td class="row-actions"><button class="btn btn-danger btn-sm" data-del="${o.id}">Delete</button></td></tr>`).join('');
+    V().innerHTML=`${topbar('Organizations','CPO and eMSP tenants',`<button class="btn btn-primary" id="addO">+ New organization</button>`)}
+      <div class="panel"><div class="panel-body flush"><table><thead><tr><th>Name</th><th>Type</th><th>Party / Country</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    document.getElementById('addO').onclick=()=>modal({title:'New organization',body:`<div class="field"><label>Name</label><input id="on"></div><div class="form-row"><div class="field"><label>Type</label><select id="ot"><option>CPO</option><option>EMSP</option></select></div><div class="field"><label>Party ID</label><input id="op" placeholder="SPZ"></div></div>`,foot:`<button class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-primary" data-go>Create</button>`,mount:(r,c)=>r.querySelector('[data-go]').onclick=()=>{const n=r.querySelector('#on').value.trim();if(!n)return;db.orgs.push({id:Math.max(0,...db.orgs.map(x=>x.id))+1,name:n,type:r.querySelector('#ot').value,party:r.querySelector('#op').value.trim()});audit('ORG_CREATE',n);c();toast('Organization created','ok');views.orgs();}});
+    V().querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>confirmDialog('Delete this organization?',()=>{db.orgs=db.orgs.filter(o=>o.id!=b.dataset.del);toast('Deleted','ok');views.orgs();}));
+  };
+
+  views.ocpi=()=>{
+    const rows=db.ocpi.map(t=>`<tr><td><b>${esc(t.label)}</b></td><td class="mono">${esc(t.party)} / ${esc(t.cc)}</td>
+      <td><span class="badge ${t.role==='SENDER'?'b-cpo':'b-emsp'}">${t.role}</span></td>
+      <td>${t.active?'<span class="badge b-ok">Active</span>':'<span class="badge b-muted">Revoked</span>'}</td>
+      <td class="row-actions">${t.active?`<button class="btn btn-danger btn-sm" data-rev="${t.id}">Revoke</button>`:''}</td></tr>`).join('');
+    V().innerHTML=`${topbar('OCPI Roaming','Credentials tokens for eMSP partners',`<button class="btn btn-primary" id="addTok">+ Issue token</button>`)}
+      <div class="panel"><div class="panel-head"><div><h2>Endpoints</h2><div class="desc">Share these with roaming partners</div></div></div>
+        <div class="panel-body"><div class="secret-box">GET https://&lt;host&gt;/ocpi/versions</div><div class="secret-box" style="margin-top:8px">Base: https://&lt;host&gt;/ocpi/2.2 · locations · tokens · cdrs · credentials</div></div></div>
+      <div class="panel"><div class="panel-body flush"><table><thead><tr><th>Label</th><th>Party / Country</th><th>Role</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    document.getElementById('addTok').onclick=()=>modal({title:'Issue OCPI token',body:`<div class="form-row"><div class="field"><label>Party ID</label><input id="pp" placeholder="XYZ"></div><div class="field"><label>Country</label><input id="pc" value="IN"></div></div><div class="form-row"><div class="field"><label>Role</label><select id="pr"><option>RECEIVER</option><option>SENDER</option></select></div><div class="field"><label>Label</label><input id="pl"></div></div>`,foot:`<button class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-primary" data-go>Issue</button>`,mount:(r,c)=>r.querySelector('[data-go]').onclick=()=>{
+      db.ocpi.push({id:Math.max(0,...db.ocpi.map(x=>x.id))+1,label:r.querySelector('#pl').value.trim()||'Partner',party:r.querySelector('#pp').value.trim(),cc:r.querySelector('#pc').value.trim(),role:r.querySelector('#pr').value,active:true});
+      const tok=Array.from(crypto.getRandomValues(new Uint8Array(24))).map(b=>b.toString(16).padStart(2,'0')).join('');audit('OCPI_TOKEN_ISSUE','');c();
+      modal({title:'OCPI token issued',body:`<p style="font-size:13px;color:var(--muted);margin-bottom:6px">Share securely — shown once.</p><div class="secret-box">${tok}</div>`,foot:`<button class="btn btn-primary" data-close>Done</button>`});views.ocpi();
+    }});
+    V().querySelectorAll('[data-rev]').forEach(b=>b.onclick=()=>confirmDialog('Revoke this OCPI token?',()=>{db.ocpi.find(t=>t.id==b.dataset.rev).active=false;audit('OCPI_TOKEN_REVOKE','');toast('Token revoked','ok');views.ocpi();}));
+  };
+
+  views.audit=()=>{
+    const rows=db.audit.map(a=>`<tr><td class="cellmuted mono">${new Date(a.time).toLocaleString('en-IN')}</td><td class="mono">${esc(a.actor)}</td><td><b>${esc(a.action)}</b></td><td class="cellmuted">${esc(a.entity)}${a.detail?' · '+esc(a.detail):''}</td></tr>`).join('');
+    V().innerHTML=`${topbar('Audit Log','Record of security-relevant actions')}
+      <div class="ribbon">Demo note: in the production system this log is server-side and immutable, capturing actor, IP, and entity for every action.</div>
+      <div class="panel"><div class="panel-body flush"><table><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Detail</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  };
+
+  renderLogin();
+})();
+</script>
+</body>
+</html>
