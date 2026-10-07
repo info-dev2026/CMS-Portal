@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SAAPHZONE // CSMS Control & EV Charger Telemetry</title>
+  <meta name="description" content="SAAPHZONE CSMS Control: Enterprise real-time EV charging management system with separate backend, database, and frontend architecture.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="light-theme">
+
+  <!-- ==========================================================================
+       LOGIN OVERLAY SCREEN (Admin & Charger Terminal Logins)
+       ========================================================================== -->
+  <div class="login-overlay active" id="loginOverlay">
+    <div class="login-card-container">
+      
+      <!-- Brand Header -->
+      <div class="login-header">
+        <div class="brand-badge-row">
+          <div class="saaph-logo-icon">
+            <svg viewBox="0 0 40 40" width="38" height="38" fill="none">
+              <rect width="40" height="40" rx="10" fill="#00a3e0"/>
+              <path d="M11 26C11 21.5 14.5 18 19 18H28M29 14C29 18.5 25.5 22 21 22H12" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round"/>
+              <circle cx="28" cy="18" r="2.5" fill="#ffffff"/>
+              <circle cx="12" cy="22" r="2.5" fill="#ffffff"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="login-brand-title">SAAPHZONE</h1>
+            <span class="login-brand-sub">CSMS CONTROL PORTAL</span>
+          </div>
+        </div>
+        <p class="login-welcome-text">Secure authentication for network administrator & charger terminals</p>
+      </div>
+
+      <!-- Role Tabs -->
+      <div class="login-role-tabs">
+        <button class="role-tab active" data-role="ADMIN" id="tabAdminLogin">Administrator</button>
+        <button class="role-tab" data-role="CHARGER" id="tabChargerLogin">Charger Terminal</button>
+      </div>
+
+      <!-- Form -->
+      <form id="loginForm" class="login-form">
+        <div class="form-field">
+          <label for="loginUsername" id="lblLoginUser">Username</label>
+          <div class="input-icon-wrap">
+            <span class="field-icon">👤</span>
+            <input type="text" id="loginUsername" required placeholder="e.g. admin or bay01" autocomplete="username">
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="loginPassword">Password</label>
+          <div class="input-icon-wrap">
+            <span class="field-icon">🔒</span>
+            <input type="password" id="loginPassword" required placeholder="Enter password" autocomplete="current-password">
+            <button type="button" class="btn-toggle-pwd" id="btnTogglePwd" title="Show/Hide Password">👁️</button>
+          </div>
+        </div>
+
+        <div class="login-hint-box" id="loginHintBox">
+          <span class="hint-icon">💡</span>
+          <span class="hint-text" id="loginHintText">Default Admin: <strong>admin</strong> / <strong>password123</strong> (Configurable by you)</span>
+        </div>
+
+        <button type="submit" class="btn-login-submit" id="btnLoginSubmit">
+          <span>Sign In to SAAPHZONE</span>
+          <span class="arrow-glyph">→</span>
+        </button>
+
+        <div class="login-footer-row">
+          <button type="button" class="btn-theme-toggle" id="btnLoginThemeToggle">
+            <span class="theme-icon">🌙</span>
+            <span class="theme-text">Dark Theme</span>
+          </button>
+          <span class="login-version">v3.0.0 • Enterprise Edition</span>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MAIN APPLICATION SHELL (Visible when Logged In)
+       ========================================================================== -->
+  <div class="app-layout" id="appLayout">
+    
+    <!-- LEFT NAVIGATION SIDEBAR (Exact Match to User's CSMS Screenshot, OCPI & Audit Removed) -->
+    <aside class="sidebar-nav" id="sidebarNav">
+      
+      <!-- Brand Logo Header -->
+      <div class="sidebar-brand">
+        <div class="saaph-logo-icon">
+          <svg viewBox="0 0 40 40" width="34" height="34" fill="none">
+            <rect width="40" height="40" rx="8" fill="#00a3e0"/>
+            <path d="M11 26C11 21.5 14.5 18 19 18H28M29 14C29 18.5 25.5 22 21 22H12" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round"/>
+            <circle cx="28" cy="18" r="2.2" fill="#ffffff"/>
+            <circle cx="12" cy="22" r="2.2" fill="#ffffff"/>
+          </svg>
+        </div>
+        <div class="brand-text-block">
+          <span class="brand-title">SAAPHZONE</span>
+          <span class="brand-sub">CSMS CONTROL</span>
+        </div>
+      </div>
+
+      <!-- Main Navigation Menu -->
+      <nav class="sidebar-menu">
+        <div class="menu-section">
+          <!-- 1. Dashboard (Matches Screenshot Active Cyan Pill) -->
+          <button class="nav-item active" data-target="csmsDashboard" id="navCsmsDashboard">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            </span>
+            <span class="nav-label">Dashboard</span>
+          </button>
+
+          <!-- 2. Charge Points -->
+          <button class="nav-item" data-target="chargePointsView" id="navChargePoints">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+            </span>
+            <span class="nav-label">Charge Points</span>
+          </button>
+
+          <!-- 3. Telemetry Cockpit -->
+          <button class="nav-item" data-target="cockpitView" id="navCockpitView">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="m14 12-4-4v8z"></path></svg>
+            </span>
+            <span class="nav-label">Telemetry Cockpit</span>
+          </button>
+
+          <!-- 4. Sessions -->
+          <button class="nav-item" data-target="sessionsView" id="navSessions">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </span>
+            <span class="nav-label">Sessions</span>
+          </button>
+
+          <!-- 5. Tariffs (Shows Revenue and Sessions for every charger separately) -->
+          <button class="nav-item" data-target="tariffsView" id="navTariffs">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+            </span>
+            <span class="nav-label">Tariffs & Revenue</span>
+          </button>
+
+          <!-- 6. RFID / Tokens (Reflects Token Keys of every charger) -->
+          <button class="nav-item" data-target="tokensView" id="navTokens">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+            </span>
+            <span class="nav-label">RFID / Tokens</span>
+          </button>
+        </div>
+
+        <div class="menu-section-header">ADMINISTRATION</div>
+
+        <div class="menu-section">
+          <!-- 7. Users & Credentials (Defined by user) -->
+          <button class="nav-item" data-target="usersView" id="navUsers">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </span>
+            <span class="nav-label">Users & Credentials</span>
+          </button>
+
+          <!-- 8. Add Charger Dedicated Page -->
+          <button class="nav-item" data-target="addChargerPage" id="navAddChargerPage">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </span>
+            <span class="nav-label">+ Add Charger</span>
+          </button>
+
+          <!-- 9. PCB Hardware Keys & Simulator -->
+          <button class="nav-item" data-target="pcbIntegrationView" id="navPcbApi">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+            </span>
+            <span class="nav-label">PCB Hardware API</span>
+          </button>
+
+          <!-- 10. Hardware Simulator -->
+          <button class="nav-item" data-target="viewSimulator" id="navSimulator">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+            </span>
+            <span class="nav-label">PCB Simulator</span>
+          </button>
+
+          <!-- Note: OCPI Roaming and Audit Log buttons removed per user request -->
+        </div>
+      </nav>
+
+      <!-- Sidebar User Profile Footer (Matches Screenshot) -->
+      <div class="sidebar-user-footer">
+        <div class="user-info-row">
+          <div class="user-avatar-circle" id="userAvatarLetter">A</div>
+          <div class="user-meta">
+            <span class="user-name" id="currentUserName">Administrator</span>
+            <span class="user-role-tag" id="currentUserRole">ADMIN</span>
+          </div>
+        </div>
+        <button class="btn-signout" id="btnSignOut">Sign out</button>
+      </div>
+
+    </aside>
+
+    <!-- MAIN RIGHT CONTENT VIEWPORT -->
+    <div class="main-viewport">
+      
+      <!-- TOP STATUS & CONTROLS HEADER -->
+      <header class="app-top-header">
+        <div class="header-breadcrumb">
+          <h2 class="page-main-heading" id="pageHeadingTitle">Dashboard</h2>
+          <span class="page-sub-heading" id="pageHeadingSubtitle">Network overview • All organizations</span>
+        </div>
+
+        <div class="header-actions">
+          
+          <!-- Live Network Indicator (Matches Screenshot) -->
+          <div class="live-network-badge">
+            <span class="live-pulse-dot"></span>
+            <span class="live-label">Live</span>
+          </div>
+
+          <!-- THE PROMINENT BATTERY PERCENTAGE BUTTON (Reflects current SoC battery already has) -->
+          <button class="battery-status-button" id="btnBatteryPercentageBadge" title="Current Battery Level Already Present">
+            <div class="battery-soc-pill">
+              <span class="batt-icon">🔋</span>
+              <span class="batt-val" id="battButtonPercent">78%</span>
+            </div>
+            <div class="batt-label-sub">BATTERY PRESENT</div>
+          </button>
+
+          <!-- Theme Toggle Button (Light Theme / Dark Theme) -->
+          <button class="btn-theme-switcher" id="btnAppThemeToggle" title="Toggle Light / Dark Theme">
+            <span class="theme-icon-indicator" id="themeIconIndicator">🌙</span>
+            <span class="theme-label-text" id="themeLabelText">Dark Theme</span>
+          </button>
+
+          <!-- Active Charger Picker -->
+          <div class="top-charger-picker">
+            <label for="topChargerSelect" class="sr-only">Active Charger</label>
+            <select id="topChargerSelect" aria-label="Select Active Charger"></select>
+          </div>
+
+          <!-- Add Charger Button (Navigates to Separate Add Charger Page) -->
+          <button class="btn-primary-cyan" id="btnTopAddCharger">+ Add Charger</button>
+        </div>
+      </header>
+
+      <!-- SCROLLABLE PAGE CONTENT AREA -->
+      <main class="page-content-area">
+
+        <!-- ==================================================================
+             VIEW 1: CSMS CONTROL DASHBOARD (Exact Match to Screenshot)
+             ================================================================== -->
+        <section class="content-view active" id="viewCsmsDashboard">
+          
+          <!-- KPI Stat Cards Grid (Exact Match to Screenshot) -->
+          <div class="kpi-metrics-grid">
+            <div class="kpi-card accent-cyan">
+              <span class="kpi-label">CHARGE POINTS</span>
+              <div class="kpi-val-row"><span class="kpi-number" id="kpiChargePoints">4</span></div>
+            </div>
+
+            <div class="kpi-card accent-green">
+              <span class="kpi-label">ONLINE NOW</span>
+              <div class="kpi-val-row"><span class="kpi-number" id="kpiOnlineNow">3<span class="kpi-denominator">/4</span></span></div>
+            </div>
+
+            <div class="kpi-card accent-cyan">
+              <span class="kpi-label">ACTIVE SESSIONS</span>
+              <div class="kpi-val-row"><span class="kpi-number" id="kpiActiveSessions">1</span></div>
+            </div>
+
+            <div class="kpi-card accent-cyan">
+              <span class="kpi-label">ENERGY DELIVERED</span>
+              <div class="kpi-val-row">
+                <span class="kpi-number" id="kpiEnergyDelivered">570.1</span>
+                <span class="kpi-unit">kWh</span>
+              </div>
+            </div>
+
+            <div class="kpi-card accent-green">
+              <span class="kpi-label">REVENUE</span>
+              <div class="kpi-val-row">
+                <span class="kpi-currency">₹</span>
+                <span class="kpi-number" id="kpiRevenue">10,493</span>
+              </div>
+            </div>
+
+            <div class="kpi-card accent-cyan">
+              <span class="kpi-label">TOTAL SESSIONS</span>
+              <div class="kpi-val-row"><span class="kpi-number" id="kpiTotalSessions">23</span></div>
+            </div>
+          </div>
+
+          <!-- Energy — last 7 days Bar Chart (Exact Match to Screenshot) -->
+          <div class="dashboard-chart-card">
+            <div class="chart-card-header">
+              <h3 class="chart-title">Energy — last 7 days</h3>
+              <p class="chart-subtitle">Daily kWh delivered across the network</p>
+            </div>
+
+            <div class="bar-chart-container">
+              <div class="bar-col"><div class="bar-fill" style="height: 38%;" title="120 kWh"></div><span class="bar-label">Thu</span></div>
+              <div class="bar-col"><div class="bar-fill active-highlight" style="height: 95%;" title="310 kWh"></div><span class="bar-label">Fri</span></div>
+              <div class="bar-col"><div class="bar-fill" style="height: 10%;" title="25 kWh"></div><span class="bar-label">Sat</span></div>
+              <div class="bar-col"><div class="bar-fill" style="height: 22%;" title="65 kWh"></div><span class="bar-label">Sun</span></div>
+              <div class="bar-col"><div class="bar-fill" style="height: 48%;" title="140 kWh"></div><span class="bar-label">Mon</span></div>
+              <div class="bar-col"><div class="bar-fill" style="height: 40%;" title="115 kWh"></div><span class="bar-label">Tue</span></div>
+              <div class="bar-col"><div class="bar-fill" style="height: 26%;" title="72 kWh"></div><span class="bar-label">Wed</span></div>
+            </div>
+          </div>
+
+          <!-- Connected Charge Points Fleet Table -->
+          <div class="csms-table-card">
+            <div class="table-card-header">
+              <div>
+                <h3 class="table-title">Live Connected Charge Points</h3>
+                <span class="table-subtitle">Real-time hardware status, PCB telemetry, and battery demand</span>
+              </div>
+              <div class="table-actions-header">
+                <button class="btn-primary-cyan-sm" id="btnTableAddCharger">+ Add Charge Point</button>
+                <button class="btn-outline-sm" id="btnRefreshFleet">Refresh</button>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="csms-data-table">
+                <thead>
+                  <tr>
+                    <th>Charge Point</th>
+                    <th>Status</th>
+                    <th>Voltage / Req</th>
+                    <th>Current / Req</th>
+                    <th>Battery SoC Present</th>
+                    <th>Power (kW)</th>
+                    <th>PCB API Key</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyChargePoints">
+                  <!-- Dynamic rows with functional Delete and Cockpit buttons -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ==================================================================
+             VIEW 2: TARIFFS & REVENUE (Shows Revenue & Sessions per Charger)
+             ================================================================== -->
+        <section class="content-view" id="viewTariffs">
+          <div class="section-title-bar">
+            <div>
+              <h2 class="section-heading">Tariffs & Charger Revenue Breakdown</h2>
+              <p class="section-sub">Detailed revenue, energy delivered, and session analytics for every charger terminal separately.</p>
+            </div>
+          </div>
+
+          <!-- Tariff Summary Cards -->
+          <div class="tariff-summary-grid">
+            <div class="tariff-summary-box">
+              <span class="ts-label">TOTAL NETWORK REVENUE</span>
+              <span class="ts-val" id="tsNetworkRevenue">₹10,493</span>
+            </div>
+            <div class="tariff-summary-box">
+              <span class="ts-label">TOTAL CHARGING SESSIONS</span>
+              <span class="ts-val" id="tsNetworkSessions">23</span>
+            </div>
+            <div class="tariff-summary-box">
+              <span class="ts-label">TOTAL ENERGY DELIVERED</span>
+              <span class="ts-val" id="tsNetworkEnergy">570.1 kWh</span>
+            </div>
+            <div class="tariff-summary-box">
+              <span class="ts-label">AVG REVENUE / SESSION</span>
+              <span class="ts-val" id="tsAvgSessionRev">₹456.20</span>
+            </div>
+          </div>
+
+          <!-- Per-Charger Revenue Table -->
+          <div class="csms-table-card">
+            <div class="table-card-header">
+              <div>
+                <h3 class="table-title">Per-Charger Revenue & Sessions Breakdown</h3>
+                <span class="table-subtitle">Individual earnings and pricing rate per charge point</span>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="csms-data-table">
+                <thead>
+                  <tr>
+                    <th>Charger Point</th>
+                    <th>Base Tariff (₹/kWh)</th>
+                    <th>Session Fee</th>
+                    <th>Total Sessions</th>
+                    <th>Energy Delivered</th>
+                    <th>Total Revenue (₹)</th>
+                    <th>Avg Revenue / Session</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyTariffsBreakdown">
+                  <!-- Dynamically populated per charger -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 3: RFID & TOKENS (Reflects Token Keys of Every Charger)
+             ================================================================== -->
+        <section class="content-view" id="viewTokens">
+          <div class="section-title-bar">
+            <div>
+              <h2 class="section-heading">RFID / Token Keys & Hardware Auth</h2>
+              <p class="section-sub">Hardware PCB authentication keys, assigned RFID card tokens, and device credentials for each charger.</p>
+            </div>
+          </div>
+
+          <!-- Tokens Grid -->
+          <div class="tokens-cards-grid" id="tokensCardsContainer">
+            <!-- Dynamically populated cards reflecting token keys of every charger -->
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 4: DEDICATED SEPARATE PAGE FOR ADDING CHARGER
+             ================================================================== -->
+        <section class="content-view" id="viewAddChargerPage">
+          <div class="section-title-bar">
+            <div>
+              <h2 class="section-heading">Register New Charge Point Terminal</h2>
+              <p class="section-sub">Add a new charging bay to SAAPHZONE CSMS, define credentials, and generate a unique PCB key.</p>
+            </div>
+            <button class="btn-outline-sm" id="btnCancelAddPage">← Back to Dashboard</button>
+          </div>
+
+          <div class="add-charger-page-card">
+            <form id="formAddChargerPage" class="page-form-grid">
+              
+              <!-- Section 1: Basic Details -->
+              <div class="form-section-block">
+                <h3 class="form-section-title">1. Charger Identification & Location</h3>
+                <div class="form-row">
+                  <div class="form-field flex-2">
+                    <label for="pageChgName">Charger Name / Identifier *</label>
+                    <input type="text" id="pageChgName" required placeholder="e.g. SAAPHZONE Bay 05 [High-Power DC]" class="input-text">
+                  </div>
+                  <div class="form-field flex-2">
+                    <label for="pageChgLocation">Physical Location / Bay</label>
+                    <input type="text" id="pageChgLocation" placeholder="e.g. Terminal East - Stall 05" class="input-text">
+                  </div>
+                </div>
+
+                <div class="form-field">
+                  <label for="pageChgConnector">Connector Standard</label>
+                  <select id="pageChgConnector" class="input-text">
+                    <option value="CCS2 Combo (Liquid-Cooled)">CCS2 Combo (Liquid-Cooled 800V)</option>
+                    <option value="CCS1 Rapid DC">CCS1 Rapid DC</option>
+                    <option value="CHAdeMO 200A">CHAdeMO 200A</option>
+                    <option value="Type 2 AC 22kW">Type 2 Mennekes (AC 22kW)</option>
+                    <option value="Custom CAN-Bus Lab Bench">Custom CAN-Bus Lab Bench</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Section 2: Electrical Ratings -->
+              <div class="form-section-block">
+                <h3 class="form-section-title">2. Electrical Output Limits</h3>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="pageChgMaxV">Max Voltage Output (V)</label>
+                    <input type="number" id="pageChgMaxV" value="800" min="12" max="1200" class="input-text">
+                  </div>
+                  <div class="form-field">
+                    <label for="pageChgMaxA">Max Current Output (A)</label>
+                    <input type="number" id="pageChgMaxA" value="350" min="1" max="600" class="input-text">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Section 3: Terminal Credentials (Defined by User) -->
+              <div class="form-section-block">
+                <h3 class="form-section-title">3. Terminal Login Credentials (Defined by You)</h3>
+                <p class="form-section-hint">The operator or station display will use these credentials to log in.</p>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="pageChgUsername">Terminal Username *</label>
+                    <input type="text" id="pageChgUsername" required placeholder="e.g. bay05" class="input-text">
+                  </div>
+                  <div class="form-field">
+                    <label for="pageChgPassword">Terminal Password *</label>
+                    <input type="text" id="pageChgPassword" required placeholder="e.g. bay05pass" class="input-text">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Section 4: Tariff & RFID -->
+              <div class="form-section-block">
+                <h3 class="form-section-title">4. Tariff Rate & Initial RFID Tag</h3>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="pageChgTariff">Base Tariff Rate (₹/kWh)</label>
+                    <input type="number" id="pageChgTariff" value="18.00" step="0.5" class="input-text">
+                  </div>
+                  <div class="form-field">
+                    <label for="pageChgRfid">Initial RFID Card Token (Optional)</label>
+                    <input type="text" id="pageChgRfid" placeholder="e.g. RFID_SAAPH_0991" class="input-text">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Submit Actions -->
+              <div class="form-submit-bar">
+                <button type="button" class="btn-outline-sm" id="btnCancelAddPageBottom">Cancel</button>
+                <button type="submit" class="btn-primary-cyan-large">⚡ Register Charger & Generate Hardware Key</button>
+              </div>
+
+            </form>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 5: LIVE TELEMETRY COCKPIT (No Porsche Car Background!)
+             ================================================================== -->
+        <section class="content-view" id="viewCockpit">
+          
+          <div class="cockpit-header-banner">
+            <div class="banner-left">
+              <span class="cockpit-brand-pill">SAAPHZONE TELEMETRY CLUSTER</span>
+              <h2 class="cockpit-bay-title" id="cockpitCurrentBayTitle">SAAPHZONE HyperCharge Bay 01</h2>
+              <span class="cockpit-bay-sub" id="cockpitCurrentBayLocation">Terminal A - Stall 01 • CCS2 Liquid-Cooled 800V</span>
+            </div>
+
+            <div class="banner-right">
+              <!-- PROMINENT BATTERY LEVEL BUTTON IN COCKPIT -->
+              <div class="cockpit-battery-prominent-button" id="cockpitBattProminentBtn">
+                <div class="batt-circle-gauge">
+                  <svg viewBox="0 0 36 36" width="46" height="46">
+                    <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                    <path class="circle-fill" id="cockpitCircleFill" stroke-dasharray="78, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                  </svg>
+                  <span class="batt-center-num" id="cockpitBattCenterNum">78%</span>
+                </div>
+                <div class="batt-btn-details">
+                  <span class="batt-btn-title">BATTERY CURRENT STATE</span>
+                  <span class="batt-btn-sub" id="cockpitBattSubDesc">78% Already Charged</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cockpit 3-Col Cluster Grid -->
+          <div class="cockpit-cluster-grid">
+            
+            <!-- Left: Waveform & Power Vector -->
+            <div class="cockpit-col left-col">
+              <div class="cockpit-card">
+                <div class="card-head-row">
+                  <span class="card-caption">LIVE V-I TELEMETRY WAVEFORM</span>
+                  <span class="badge-pill-cyan" id="cockpitPcbLinkHz">1.2 Hz</span>
+                </div>
+                
+                <div class="power-readout-row">
+                  <span class="power-big-num" id="cockpitLeftPowerNum">62.0</span>
+                  <span class="power-big-unit">kW</span>
+                </div>
+                <span class="mode-sub-label" id="cockpitLeftModeSub">SPORT PLUS // 800V DC BUS</span>
+
+                <div class="waveform-box">
+                  <canvas id="cockpitWaveformCanvas" width="340" height="130"></canvas>
+                  <div class="waveform-legend">
+                    <span class="leg-item"><span class="dot actual-v"></span>Actual V</span>
+                    <span class="leg-item"><span class="dot req-v"></span>Battery Req V</span>
+                    <span class="leg-item"><span class="dot cur-a"></span>Current (A)</span>
+                  </div>
+                </div>
+
+                <div class="cockpit-card-footer">
+                  <div class="pcb-key-badge">
+                    <span class="pcb-lbl">PCB KEY:</span>
+                    <code id="cockpitLeftKeyShort">evc_live_9f82...</code>
+                  </div>
+                  <button class="btn-copy-tiny" id="btnCockpitCopyKey">Copy Key</button>
+                </div>
+              </div>
+
+              <!-- Power Vector & Session Stat Pill -->
+              <div class="dual-small-cards">
+                <div class="cockpit-card mini-radar">
+                  <span class="card-caption">POWER VECTOR</span>
+                  <div class="radar-circle-widget">
+                    <div class="radar-ring r1"></div>
+                    <div class="radar-cross-h"></div>
+                    <div class="radar-cross-v"></div>
+                    <div class="radar-blip" id="cockpitRadarBlip"></div>
+                  </div>
+                  <span class="radar-stat-num" id="cockpitRadarNum">1.2 P</span>
+                </div>
+
+                <div class="cockpit-card mini-stat">
+                  <span class="card-caption">SESSION DELIVERED</span>
+                  <div class="stat-num-box">
+                    <span class="stat-num" id="cockpitSessionKwh">45.8</span>
+                    <span class="stat-unit">kWh</span>
+                  </div>
+                  <span class="stat-meta" id="cockpitSessionTime">22.4 min active</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Center: Dial Tachometer & High-Tech Power Flow Schematic (No Porsche Background!) -->
+            <div class="cockpit-col center-col">
+              <div class="central-tachometer-wrapper">
+                <svg class="dial-svg" viewBox="0 0 400 400" id="saaphDialSvg">
+                  <defs>
+                    <linearGradient id="cyanGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+                      <stop offset="0%" stop-color="#0284c7" stop-opacity="0.3" />
+                      <stop offset="60%" stop-color="#0ea5e9" stop-opacity="0.9" />
+                      <stop offset="100%" stop-color="#38bdf8" stop-opacity="1" />
+                    </linearGradient>
+                  </defs>
+                  <circle class="dial-track-bg" cx="200" cy="200" r="160" />
+                  <circle class="dial-progress-arc" id="saaphDialProgressArc" cx="200" cy="200" r="160" />
+                  <g id="saaphDialTicksGroup"></g>
+                </svg>
+
+                <div class="dial-center-core">
+                  <div class="dial-power-num" id="dialPowerValue">62.0</div>
+                  <div class="dial-unit-row">
+                    <span class="dial-kw-unit">kW</span>
+                    <span class="dial-secondary-unit" id="dialSecondaryMetrics">418.5 V • 148.2 A</span>
+                  </div>
+                  <div class="dial-mode-pill" id="dialModePillText">SPORT PLUS // CC FAST</div>
+                  <div class="dial-status-gear" id="dialStatusGear">CHARGING</div>
+                </div>
+
+                <!-- PORSCHE WITHOUT BACKGROUND (Cutout car resting cleanly in dial arc) -->
+                <div class="porsche-stage-wrapper">
+                  <div class="porsche-glow-halo"></div>
+                  <img src="assets/porsche_transparent.png?v=3" alt="Porsche EV" class="porsche-cutout-img" id="dialPorscheImg">
+                  <!-- Portal Charger Remote Controls: Charger ON and OFF Buttons -->
+                  <div class="portal-charger-controls" id="portalChargerControls">
+                    <button type="button" class="btn-charger-power on" id="btnChargerPowerOn" title="Turn Charger ON (Start Power Flow)">
+                      <span class="pwr-icon">⚡</span>
+                      <span class="pwr-text">CHARGER ON</span>
+                    </button>
+                    <button type="button" class="btn-charger-power off" id="btnChargerPowerOff" title="Turn Charger OFF (Stop Power Flow)">
+                      <span class="pwr-icon">⏹</span>
+                      <span class="pwr-text">CHARGER OFF</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Vehicle & Battery Demands Status -->
+            <div class="cockpit-col right-col">
+              <div class="cockpit-card">
+                <div class="card-head-row">
+                  <span class="card-caption">VEHICLE & BATTERY STATUS</span>
+                  <span class="badge-status-charging" id="cockpitStatusBadge">CHARGING</span>
+                </div>
+
+                <div class="cockpit-metrics-list">
+                  
+                  <!-- Estimated Range -->
+                  <div class="cockpit-metric-row">
+                    <div class="metric-top">
+                      <span class="metric-name">ESTIMATED RANGE</span>
+                      <span class="metric-val" id="cockpitRangeVal">420 km</span>
+                    </div>
+                    <div class="progress-track">
+                      <div class="progress-fill cyan" id="cockpitRangeBar" style="width: 78%;"></div>
+                    </div>
+                  </div>
+
+                  <!-- Battery SoC % -->
+                  <div class="cockpit-metric-row">
+                    <div class="metric-top">
+                      <span class="metric-name">BATTERY STATE (SoC)</span>
+                      <span class="metric-val highlight" id="cockpitSocVal">78.0 %</span>
+                    </div>
+                    <div class="progress-track">
+                      <div class="progress-fill green" id="cockpitSocBar" style="width: 78%;"></div>
+                    </div>
+                  </div>
+
+                  <!-- Dual Voltage: Actual vs Battery Requested -->
+                  <div class="cockpit-metric-row dual">
+                    <div class="metric-top">
+                      <span class="metric-name">VOLTAGE (ACTUAL vs REQ)</span>
+                      <div class="dual-readout">
+                        <span class="val-act" id="cockpitActualV">418.5 V</span>
+                        <span class="val-req" id="cockpitReqV">Req: 425.0 V</span>
+                      </div>
+                    </div>
+                    <div class="dual-bar-track">
+                      <div class="dual-fill-act" id="cockpitVFill" style="width: 83%;"></div>
+                      <div class="dual-marker-req" id="cockpitVMarker" style="left: 85%;"></div>
+                    </div>
+                  </div>
+
+                  <!-- Dual Current: Actual vs Battery Requested -->
+                  <div class="cockpit-metric-row dual">
+                    <div class="metric-top">
+                      <span class="metric-name">CURRENT (ACTUAL vs REQ)</span>
+                      <div class="dual-readout">
+                        <span class="val-act" id="cockpitActualA">148.2 A</span>
+                        <span class="val-req" id="cockpitReqA">Req: 160.0 A</span>
+                      </div>
+                    </div>
+                    <div class="dual-bar-track">
+                      <div class="dual-fill-act current" id="cockpitAFill" style="width: 74%;"></div>
+                      <div class="dual-marker-req" id="cockpitAMarker" style="left: 80%;"></div>
+                    </div>
+                  </div>
+
+                  <!-- Battery Pack Temperature -->
+                  <div class="cockpit-metric-row">
+                    <div class="metric-top">
+                      <span class="metric-name">BATTERY PACK TEMP</span>
+                      <span class="metric-val" id="cockpitBattTempVal">34.2 °C</span>
+                    </div>
+                    <div class="progress-track">
+                      <div class="progress-fill temp" id="cockpitBattTempBar" style="width: 48%;"></div>
+                    </div>
+                  </div>
+
+                  <!-- Charger Cabinet Electronics Temp -->
+                  <div class="cockpit-metric-row">
+                    <div class="metric-top">
+                      <span class="metric-name">CHARGER ELECTRONICS TEMP</span>
+                      <span class="metric-val" id="cockpitChgTempVal">41.5 °C</span>
+                    </div>
+                    <div class="progress-track">
+                      <div class="progress-fill chg-temp" id="cockpitChgTempBar" style="width: 55%;"></div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 6: CHARGE POINTS CARDS VIEW
+             ================================================================== -->
+        <section class="content-view" id="viewChargePoints">
+          <div class="section-title-bar">
+            <div>
+              <h2 class="section-heading">All Registered Charge Points</h2>
+              <p class="section-sub">Hardware limits, operational statuses, and management actions.</p>
+            </div>
+            <button class="btn-primary-cyan" id="btnOpenAddPageFromPoints">+ Register New Charge Point</button>
+          </div>
+
+          <!-- Search & Filter Bar (User Requirement: Search button in charge points page) -->
+          <div class="charge-points-filter-bar">
+            <div class="search-box-wrapper">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="inputSearchChargePoints" placeholder="Search charge points by name, location, bay, or connector..." autocomplete="off">
+              <button type="button" class="btn-clear-search" id="btnClearSearchChargePoints" title="Clear search">✕</button>
+            </div>
+            <button type="button" class="btn-search-trigger" id="btnSearchChargePoints">
+              <span>🔍 Search</span>
+            </button>
+            <div class="search-filter-pills">
+              <button type="button" class="filter-pill active" data-status="ALL" id="pillFilterAll">All (<span id="countAllPoints">4</span>)</button>
+              <button type="button" class="filter-pill" data-status="CHARGING" id="pillFilterCharging">Charging (<span id="countChargingPoints">1</span>)</button>
+              <button type="button" class="filter-pill" data-status="ONLINE" id="pillFilterOnline">Online (<span id="countOnlinePoints">2</span>)</button>
+              <button type="button" class="filter-pill" data-status="OFFLINE" id="pillFilterOffline">Offline (<span id="countOfflinePoints">1</span>)</button>
+            </div>
+          </div>
+
+          <div class="charge-points-grid" id="chargePointsCardsContainer">
+            <!-- Populated via JS with reliable Delete action and Search filtering -->
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 7: USERS & CREDENTIALS ADMINISTRATION
+             ================================================================== -->
+        <section class="content-view" id="viewUsers">
+          <div class="section-title-bar">
+            <div>
+              <h2 class="section-heading">User & Terminal Credentials Management</h2>
+              <p class="section-sub">Define custom usernames and passwords for Administrator and every individual charger terminal.</p>
+            </div>
+          </div>
+
+          <div class="users-management-grid">
+            <!-- Admin Credentials -->
+            <div class="admin-credential-card">
+              <div class="card-top-header">
+                <div class="user-role-avatar admin">A</div>
+                <div>
+                  <h3 class="user-card-title">Administrator Account</h3>
+                  <span class="user-card-desc">Full access to network overview and all settings</span>
+                </div>
+              </div>
+
+              <form id="formUpdateAdmin" class="credential-form">
+                <div class="form-field">
+                  <label for="adminUsernameInput">Admin Username</label>
+                  <input type="text" id="adminUsernameInput" value="admin" required class="input-text">
+                </div>
+                <div class="form-field">
+                  <label for="adminPasswordInput">Admin Password</label>
+                  <input type="password" id="adminPasswordInput" value="password123" required class="input-text">
+                </div>
+                <button type="submit" class="btn-primary-cyan">Save Admin Credentials</button>
+              </form>
+            </div>
+
+            <!-- Chargers Credentials List -->
+            <div class="chargers-credentials-card">
+              <h3 class="user-card-title">Charger Terminal Logins</h3>
+              <p class="user-card-desc">Each charger can log in with its assigned username and password to view its dedicated live cockpit.</p>
+
+              <div class="chargers-credentials-list" id="chargersCredentialsList">
+                <!-- Dynamically populated rows -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 8: PCB HARDWARE KEYS & CODE SNIPPETS
+             ================================================================== -->
+        <section class="content-view" id="viewPcbIntegration">
+          <div class="section-title-bar">
+            <div>
+              <h2 class="section-heading">PCB Hardware Authentication Keys & Integration</h2>
+              <p class="section-sub">Integrate your custom PCB or microcontroller with SAAPHZONE CSMS via HTTP REST or WebSockets.</p>
+            </div>
+          </div>
+
+          <div class="integration-grid">
+            <div class="integration-key-box">
+              <h3 class="integration-box-title">Active Charger API Key</h3>
+              <p class="integration-desc">Include this key in your PCB firmware via the <code>x-api-key</code> HTTP header.</p>
+
+              <div class="key-field-box">
+                <label for="inputPcbActiveKey" class="key-label">HARDWARE API KEY (`x-api-key`)</label>
+                <div class="key-row">
+                  <input type="text" id="inputPcbActiveKey" readonly class="input-key-code" value="evc_live_9f82d1c470be31980a32e1">
+                  <button class="btn-cyan-copy" id="btnCopyPcbKeyMain">📋 Copy Key</button>
+                  <button class="btn-outline-sm" id="btnRegeneratePcbKeyMain">🔄 Regenerate</button>
+                </div>
+              </div>
+
+              <div class="endpoint-display-box">
+                <span class="ep-label">Live Telemetry Ingestion URL:</span>
+                <div class="ep-url-row">
+                  <span class="post-tag">POST</span>
+                  <code id="displayEndpointUrl">http://localhost:3000/api/telemetry</code>
+                  <button class="btn-copy-tiny" id="btnCopyEndpointUrl">Copy</button>
+                </div>
+              </div>
+
+              <h4 class="specs-heading">Telemetry JSON Payload Format:</h4>
+              <pre class="json-spec-code"><code>{
+  "charger_voltage": 418.5,        // Output Volts (V)
+  "charger_current": 148.2,        // Output Amperes (A)
+  "battery_soc": 78.0,             // Battery percentage (0-100)
+  "battery_req_voltage": 425.0,    // Target Volts required by BMS
+  "battery_req_current": 160.0,    // Max Amperes required by BMS
+  "battery_temp": 34.2,            // Battery pack temp (°C)
+  "charger_temp": 41.5,            // Power electronics temp (°C)
+  "status": "CHARGING"             // Operational state
+}</code></pre>
+            </div>
+
+            <!-- Code Samples -->
+            <div class="integration-code-box">
+              <div class="code-tabs-nav">
+                <button class="code-tab-btn active" data-tab="arduino">ESP32 / Arduino (C++)</button>
+                <button class="code-tab-btn" data-tab="python">Python (Raspberry Pi)</button>
+                <button class="code-tab-btn" data-tab="curl">cURL Command</button>
+              </div>
+
+              <div class="code-pane active" id="paneArduino">
+                <div class="code-head">
+                  <span>ESP32 Arduino IDE Implementation</span>
+                  <button class="btn-copy-tiny" onclick="copySnippet('snippetArduino')">Copy</button>
+                </div>
+                <pre><code id="snippetArduino"></code></pre>
+              </div>
+
+              <div class="code-pane" id="panePython">
+                <div class="code-head">
+                  <span>Python 3 Requests Implementation</span>
+                  <button class="btn-copy-tiny" onclick="copySnippet('snippetPython')">Copy</button>
+                </div>
+                <pre><code id="snippetPython"></code></pre>
+              </div>
+
+              <div class="code-pane" id="paneCurl">
+                <div class="code-head">
+                  <span>Terminal cURL Quick Test</span>
+                  <button class="btn-copy-tiny" onclick="copySnippet('snippetCurl')">Copy</button>
+                </div>
+                <pre><code id="snippetCurl"></code></pre>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 9: HARDWARE PCB SIMULATOR
+             ================================================================== -->
+        <section class="content-view" id="viewSimulator">
+          <div class="section-title-bar">
+            <div>
+              <h2 class="section-heading">Interactive PCB Hardware Simulator</h2>
+              <p class="section-sub">Simulate live sensor transmissions from your PCB without physical hardware connected.</p>
+            </div>
+            <div class="auto-stream-toggle-box">
+              <span class="stream-text">AUTO-STREAM (1 Hz):</span>
+              <label class="switch">
+                <input type="checkbox" id="simAutoToggle">
+                <span class="slider round"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="sim-grid">
+            <div class="sim-controls-card">
+              <div class="sim-presets-row">
+                <span class="preset-label">SCENARIOS:</span>
+                <button class="btn-preset active" id="simPresetFast">⚡ 800V Fast Charge (350kW)</button>
+                <button class="btn-preset" id="simPreset400V">🚗 Standard 400V EV (60kW)</button>
+                <button class="btn-preset" id="simPresetTaper">🔋 CV Top-Off Taper (88% SoC)</button>
+                <button class="btn-preset danger" id="simPresetFault">⚠️ Emergency Stop</button>
+              </div>
+
+              <div class="sim-sliders-grid">
+                <div class="slider-box">
+                  <div class="sl-head"><span>CHARGER OUTPUT VOLTAGE</span><strong id="slValV">418.5 V</strong></div>
+                  <input type="range" id="slV" min="0" max="850" step="0.5" value="418.5">
+                </div>
+                <div class="slider-box">
+                  <div class="sl-head"><span>CHARGER OUTPUT CURRENT</span><strong id="slValA">148.2 A</strong></div>
+                  <input type="range" id="slA" min="0" max="400" step="0.5" value="148.2">
+                </div>
+                <div class="slider-box highlight">
+                  <div class="sl-head"><span>BATTERY STATE OF CHARGE (SoC)</span><strong id="slValSoc">78.0 %</strong></div>
+                  <input type="range" id="slSoc" min="0" max="100" step="0.5" value="78.0">
+                </div>
+                <div class="slider-box highlight">
+                  <div class="sl-head"><span>BATTERY REQUIRED VOLTAGE (BMS)</span><strong id="slValReqV">425.0 V</strong></div>
+                  <input type="range" id="slReqV" min="0" max="850" step="0.5" value="425.0">
+                </div>
+                <div class="slider-box highlight">
+                  <div class="sl-head"><span>BATTERY REQUIRED CURRENT (BMS)</span><strong id="slValReqA">160.0 A</strong></div>
+                  <input type="range" id="slReqA" min="0" max="400" step="0.5" value="160.0">
+                </div>
+                <div class="slider-box">
+                  <div class="sl-head"><span>BATTERY PACK TEMP</span><strong id="slValTemp">34.2 °C</strong></div>
+                  <input type="range" id="slTemp" min="10" max="75" step="0.5" value="34.2">
+                </div>
+              </div>
+
+              <div class="sim-btn-row">
+                <button class="btn-primary-cyan-large" id="btnSimSendSingle">🚀 Send Single Telemetry Packet (HTTP POST)</button>
+                <span class="sim-last-tx" id="simLastTxResult">Ready to transmit</span>
+              </div>
+            </div>
+
+            <div class="sim-log-card">
+              <div class="log-head">
+                <span>INGESTION LOG STREAM</span>
+                <button class="btn-clear-tiny" id="btnSimClearLogs">Clear</button>
+              </div>
+              <div class="log-window" id="simLogConsole">
+                <div class="log-line system">[SYSTEM] SAAPHZONE Simulator ready. Telemetry verified with unique PCB key.</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: EDIT CHARGER CREDENTIALS (Defined by User)
+       ========================================================================== -->
+  <div class="modal-backdrop" id="modalEditCredentials">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Define Terminal Credentials</h3>
+        <button class="btn-modal-close" id="btnCloseEditCredModal">✕</button>
+      </div>
+
+      <form id="formEditChargerCredentials" class="modal-form">
+        <input type="hidden" id="editCredChargerId">
+        
+        <div class="form-field">
+          <label>Target Charge Point</label>
+          <input type="text" id="editCredChargerNameDisplay" readonly class="input-text disabled">
+        </div>
+
+        <div class="form-field">
+          <label for="editCredUsername">Assigned Username</label>
+          <input type="text" id="editCredUsername" required class="input-text">
+        </div>
+
+        <div class="form-field">
+          <label for="editCredPassword">Assigned Password</label>
+          <input type="text" id="editCredPassword" required class="input-text">
+        </div>
+
+        <div class="modal-actions-row">
+          <button type="button" class="btn-outline-sm" id="btnCancelEditCredModal">Cancel</button>
+          <button type="submit" class="btn-primary-cyan">Save Credentials</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: EDIT TARIFF FOR CHARGER
+       ========================================================================== -->
+  <div class="modal-backdrop" id="modalEditTariff">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Configure Charger Tariff</h3>
+        <button class="btn-modal-close" id="btnCloseEditTariffModal">✕</button>
+      </div>
+
+      <form id="formEditTariff" class="modal-form">
+        <input type="hidden" id="editTariffChargerId">
+        
+        <div class="form-field">
+          <label>Charge Point</label>
+          <input type="text" id="editTariffChargerName" readonly class="input-text disabled">
+        </div>
+
+        <div class="form-field">
+          <label for="editTariffRate">Rate per kWh (₹)</label>
+          <input type="number" id="editTariffRate" step="0.25" min="1" required class="input-text">
+        </div>
+
+        <div class="form-field">
+          <label for="editTariffSessionFee">Base Session Fee (₹)</label>
+          <input type="number" id="editTariffSessionFee" step="5" min="0" required class="input-text">
+        </div>
+
+        <div class="modal-actions-row">
+          <button type="button" class="btn-outline-sm" id="btnCancelEditTariffModal">Cancel</button>
+          <button type="submit" class="btn-primary-cyan">Save Tariff</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: ADD RFID TOKEN TO CHARGER
+       ========================================================================== -->
+  <div class="modal-backdrop" id="modalAddToken">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Assign RFID Card Token</h3>
+        <button class="btn-modal-close" id="btnCloseAddTokenModal">✕</button>
+      </div>
+
+      <form id="formAddToken" class="modal-form">
+        <input type="hidden" id="addTokenChargerId">
+        
+        <div class="form-field">
+          <label>Assign to Charger</label>
+          <input type="text" id="addTokenChargerName" readonly class="input-text disabled">
+        </div>
+
+        <div class="form-field">
+          <label for="inputTokenString">RFID Tag UID / Token Identifier</label>
+          <input type="text" id="inputTokenString" placeholder="e.g. RFID_SAAPH_0842" required class="input-text">
+        </div>
+
+        <div class="modal-actions-row">
+          <button type="button" class="btn-outline-sm" id="btnCancelAddTokenModal">Cancel</button>
+          <button type="submit" class="btn-primary-cyan">Authorize Token</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: DELETE CHARGER CONFIRMATION (100% Reliable & Fail-Safe)
+       ========================================================================== -->
+  <div class="modal-backdrop" id="modalDeleteConfirm">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: #ef4444; display: flex; align-items: center; gap: 8px;">
+          <span>⚠️</span> Confirm Charge Point Deletion
+        </h3>
+        <button type="button" class="btn-modal-close" id="btnCancelDeleteModal">✕</button>
+      </div>
+
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 22px;">
+        <p style="color: var(--text-main); font-size: 0.95rem; line-height: 1.4; margin: 0;">
+          Are you sure you want to permanently delete this charge point from <strong>SAAPHZONE CSMS</strong>?
+        </p>
+        <div style="background: var(--bg-card-subtle); border: 1px solid var(--border-light); padding: 14px; border-radius: var(--radius-sm);">
+          <strong id="deleteTargetChargerName" style="color: var(--text-main); font-size: 1.05rem; display: block; margin-bottom: 4px;">Charger Name</strong>
+          <span id="deleteTargetChargerDetails" style="color: var(--text-muted); font-size: 0.8rem; font-family: var(--font-mono);">Location & ID</span>
+        </div>
+        <p style="color: #f87171; font-size: 0.8rem; margin: 0; font-weight: 600;">
+          ⚠️ This will permanently remove the terminal from the CSMS, delete its PCB hardware key, and remove it from chargers.json.
+        </p>
+      </div>
+
+      <div class="modal-actions-row">
+        <button type="button" class="btn-outline-sm" id="btnCancelDeleteModalBtn">Cancel</button>
+        <button type="button" class="btn-delete-confirm-final" id="btnConfirmDeleteModalBtn">
+          <span>🗑️ Permanently Delete</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATIONS -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

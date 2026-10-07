@@ -1,0 +1,49 @@
+[
+  {
+    "id": "chg_muya1w8x_4zmz",
+    "name": "TESTING_GAURAV_SIR",
+    "location": "Delhi",
+    "apiKey": "evc_live_959f59a8a1f8a7e728815256",
+    "credentials": {
+      "username": "TGS_001",
+      "password": "Tgs@enersol"
+    },
+    "tariff": {
+      "ratePerKwh": 18,
+      "currency": "₹",
+      "sessionFee": 40
+    },
+    "stats": {
+      "totalSessions": 0,
+      "totalEnergyKwh": 0,
+      "totalRevenue": 0
+    },
+    "rfidTokens": [
+      "RFID_TAG_1927"
+    ],
+    "createdAt": "2026-10-07T15:43:34.785Z",
+    "maxVoltage": 500,
+    "maxCurrent": 350,
+    "connectorType": "Custom CAN-Bus Lab Bench",
+    "status": "ONLINE",
+    "lastSeen": 1791387814785,
+    "telemetry": {
+      "charger_voltage": 0,
+      "charger_current": 0,
+      "battery_soc": 0,
+      "battery_req_voltage": 0,
+      "battery_req_current": 0,
+      "battery_temp": 25,
+      "charger_temp": 25,
+      "status": "IDLE",
+      "charging_mode": "STANDBY READY",
+      "fault_code": "NONE",
+      "session_energy_kwh": 0,
+      "session_duration_min": 0,
+      "power_kw": 0,
+      "target_power_kw": 0,
+      "timestamp": 1791387814785
+    },
+    "history": []
+  }
+]

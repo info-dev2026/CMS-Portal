@@ -1,0 +1,25 @@
+{
+  "name": "charger-portal",
+  "version": "1.0.0",
+  "description": "Real-time Multi-Charger EV Monitoring Portal with Hardware PCB Integration",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "simulate": "node test-pcb-client.js"
+  },
+  "keywords": [
+    "ev-charger",
+    "telemetry",
+    "pcb-integration",
+    "real-time",
+    "porsche-cockpit"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "ws": "^8.18.0"
+  }
+}

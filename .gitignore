@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Environment & runtime logs
+.env
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS and Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary scripts
+remove_bg.py
+clean_car.py
+filter_car.py
+verify_changes.js
+test_features.js
