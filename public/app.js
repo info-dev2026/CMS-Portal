@@ -1143,32 +1143,32 @@ function updateCockpitTelemetry() {
 
   // Right Panel: Dual Comparison Bars (Actual vs Battery Demands)
   const estRange = Math.round((soc / 100) * 540);
-  dom.cockpitRangeVal.textContent = `${estRange} km`;
-  dom.cockpitRangeBar.style.width = `${soc}%`;
+  dom.cockpitRangeVal.textContent = soc > 0 ? `${estRange} km` : '0 km (Standby)';
+  dom.cockpitRangeBar.style.width = `${Math.max(2, soc)}%`;
 
   dom.cockpitSocVal.textContent = `${soc.toFixed(1)} %`;
-  dom.cockpitSocBar.style.width = `${soc}%`;
+  dom.cockpitSocBar.style.width = `${Math.max(2, soc)}%`;
 
   // Voltage Comparison
   const maxV = charger.maxVoltage || 800;
   dom.cockpitActualV.textContent = `${v.toFixed(1)} V`;
-  dom.cockpitReqV.textContent = `Req: ${reqV.toFixed(1)} V`;
-  dom.cockpitVFill.style.width = `${Math.min(100, (v / maxV) * 100)}%`;
-  dom.cockpitVMarker.style.left = `${Math.min(100, (reqV / maxV) * 100)}%`;
+  dom.cockpitReqV.textContent = reqV > 0 ? `Req: ${reqV.toFixed(1)} V` : 'Req: 0.0 V';
+  dom.cockpitVFill.style.width = `${Math.max(2, Math.min(100, (v / maxV) * 100))}%`;
+  dom.cockpitVMarker.style.left = `${Math.max(2, Math.min(100, (reqV / maxV) * 100))}%`;
 
   // Current Comparison
   const maxA = charger.maxCurrent || 350;
   dom.cockpitActualA.textContent = `${a.toFixed(1)} A`;
-  dom.cockpitReqA.textContent = `Req: ${reqA.toFixed(1)} A`;
-  dom.cockpitAFill.style.width = `${Math.min(100, (a / maxA) * 100)}%`;
-  dom.cockpitAMarker.style.left = `${Math.min(100, (reqA / maxA) * 100)}%`;
+  dom.cockpitReqA.textContent = reqA > 0 ? `Req: ${reqA.toFixed(1)} A` : 'Req: 0.0 A';
+  dom.cockpitAFill.style.width = `${Math.max(2, Math.min(100, (a / maxA) * 100))}%`;
+  dom.cockpitAMarker.style.left = `${Math.max(2, Math.min(100, (reqA / maxA) * 100))}%`;
 
   // Temperatures
   dom.cockpitBattTempVal.textContent = `${bTemp.toFixed(1)} °C`;
-  dom.cockpitBattTempBar.style.width = `${Math.min(100, (bTemp / 75) * 100)}%`;
+  dom.cockpitBattTempBar.style.width = `${Math.max(4, Math.min(100, (bTemp / 75) * 100))}%`;
 
   dom.cockpitChgTempVal.textContent = `${chgTemp.toFixed(1)} °C`;
-  dom.cockpitChgTempBar.style.width = `${Math.min(100, (chgTemp / 80) * 100)}%`;
+  dom.cockpitChgTempBar.style.width = `${Math.max(4, Math.min(100, (chgTemp / 80) * 100))}%`;
 
   dom.cockpitStatusBadge.textContent = charger.status;
   dom.cockpitStatusBadge.className = charger.status === 'CHARGING' ? 'badge-status charging' : 'badge-status online';

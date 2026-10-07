@@ -98,6 +98,23 @@ wss.on('connection', (ws) => {
   });
 });
 
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    const nextPort = Number(PORT) + 1;
+    console.warn(`⚠️ Port ${PORT} is in use (server already active). Starting on port ${nextPort}...`);
+    server.listen(nextPort, () => {
+      console.log(`====================================================`);
+      console.log(`⚡ SAAPHZONE CSMS CONTROL SERVER RUNNING`);
+      console.log(`🌐 Dashboard URL: http://localhost:${nextPort}`);
+      console.log(`📡 Telemetry API: http://localhost:${nextPort}/api/telemetry`);
+      console.log(`🔌 WebSocket URL: ws://localhost:${nextPort}`);
+      console.log(`====================================================`);
+    });
+  } else {
+    console.error('Server error:', err);
+  }
+});
+
 server.listen(PORT, () => {
   console.log(`====================================================`);
   console.log(`⚡ SAAPHZONE CSMS CONTROL SERVER RUNNING`);
