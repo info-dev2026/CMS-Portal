@@ -30,9 +30,9 @@
     "telemetry": {
       "charger_voltage": 418.5,
       "charger_current": 148.2,
-      "battery_soc": 78.0,
-      "battery_req_voltage": 425.0,
-      "battery_req_current": 160.0,
+      "battery_soc": 78,
+      "battery_req_voltage": 425,
+      "battery_req_current": 160,
       "battery_temp": 34.2,
       "charger_temp": 41.5,
       "status": "CHARGING",
@@ -40,8 +40,8 @@
       "fault_code": "NONE",
       "session_energy_kwh": 45.8,
       "session_duration_min": 22.4,
-      "power_kw": 62.0,
-      "target_power_kw": 68.0,
+      "power_kw": 62,
+      "target_power_kw": 68,
       "timestamp": 1791390421494
     },
     "history": []

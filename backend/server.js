@@ -9,6 +9,9 @@ const db = require('../database/db');
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
+wss.on('error', (err) => {
+  // Prevent unhandled error event crash during port re-binding
+});
 
 const PORT = process.env.PORT || 3000;
 const FRONTEND_DIR = path.join(__dirname, '..', 'frontend');
