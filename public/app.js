@@ -417,7 +417,7 @@ function initAuth() {
     dom.tabChargerLogin.classList.remove('active');
     dom.lblLoginUser.textContent = 'Administrator Username';
     dom.loginUsername.placeholder = 'e.g. admin';
-    dom.loginHintText.innerHTML = 'Default Admin: <strong>admin</strong> / <strong>password123</strong>';
+    if (dom.loginHintText) dom.loginHintText.innerHTML = 'Default Admin: <strong>admin</strong> / <strong>password123</strong>';
   };
 
   dom.tabChargerLogin.onclick = () => {
@@ -425,7 +425,7 @@ function initAuth() {
     dom.tabAdminLogin.classList.remove('active');
     dom.lblLoginUser.textContent = 'Charger Terminal Username';
     dom.loginUsername.placeholder = 'e.g. bay01, bay02, bay03, bay04';
-    dom.loginHintText.innerHTML = 'Charger Login: <strong>bay01</strong> / <strong>password123</strong>';
+    if (dom.loginHintText) dom.loginHintText.innerHTML = 'Charger Login: <strong>bay01</strong> / <strong>password123</strong>';
   };
 
   dom.btnSignOut.onclick = () => {
