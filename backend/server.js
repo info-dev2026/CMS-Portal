@@ -1,4 +1,5 @@
 const express = require('express');
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const http = require('http');
 const { WebSocketServer } = require('ws');
 const path = require('path');
@@ -32,6 +33,7 @@ function broadcast(data) {
 
 // Mount modular routes
 app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/postgres', require('./routes/postgresRoutes'));
 app.use('/api/chargers', require('./routes/chargerRoutes')(broadcast));
 app.use('/api/telemetry', require('./routes/telemetryRoutes')(broadcast));
 app.use('/api/tariffs', require('./routes/tariffRoutes')(broadcast));

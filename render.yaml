@@ -10,7 +10,7 @@ services:
       - key: DATABASE_URL
         fromDatabase: cms_backend_2yl9   # <‑‑ Render will create a PostgreSQL service with this name (see step 2)
       - key: API_SECRET
-        value: 8a8980bf460ad644e86543c05db70579cfc4992cc939a76e451934b18dbb551d   # ← the secret you generated
+        sync: false   # set the value in the Render dashboard (never commit secrets)
       - key: VERCEL_DASHBOARD_URL
         value: https://cms-portal-lyart.vercel.app
     autoDeploy: true
