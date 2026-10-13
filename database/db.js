@@ -496,16 +496,19 @@ class Database {
     if (!charger) return null;
 
     const now = Date.now();
-    const v = Number(payload.charger_voltage) || 0.0;
-    const a = Number(payload.charger_current) || 0.0;
-    const soc = Number(payload.battery_soc) !== undefined ? Number(payload.battery_soc) : charger.telemetry.battery_soc;
-    const reqV = Number(payload.battery_req_voltage) || 0.0;
-    const reqA = Number(payload.battery_req_current) || 0.0;
-    const pKw = +((v * a) / 1000).toFixed(2);
-    const targetPKw = +((reqV * reqA) / 1000).toFixed(2);
+    const prev = charger.telemetry || {};
 
-    let currentEnergy = charger.telemetry.session_energy_kwh || 0.0;
-    let duration = charger.telemetry.session_duration_min || 0.0;
+    const v = payload.charger_voltage !== undefined ? Number(payload.charger_voltage) : (payload.voltage !== undefined ? Number(payload.voltage) : (prev.charger_voltage || 418.5));
+    const a = payload.charger_current !== undefined ? Number(payload.charger_current) : (payload.current !== undefined ? Number(payload.current) : (prev.charger_current || 148.2));
+    const rawSoc = payload.battery_soc !== undefined ? payload.battery_soc : (payload.soc !== undefined ? payload.soc : prev.battery_soc);
+    const soc = rawSoc !== undefined ? Number(rawSoc) : 78.0;
+    const reqV = payload.battery_req_voltage !== undefined ? Number(payload.battery_req_voltage) : (prev.battery_req_voltage || 425.0);
+    const reqA = payload.battery_req_current !== undefined ? Number(payload.battery_req_current) : (prev.battery_req_current || 160.0);
+    const pKw = payload.power_kw !== undefined ? Number(payload.power_kw) : +((v * a) / 1000).toFixed(2);
+    const targetPKw = payload.target_power_kw !== undefined ? Number(payload.target_power_kw) : +((reqV * reqA) / 1000).toFixed(2);
+
+    let currentEnergy = prev.session_energy_kwh || 0.0;
+    let duration = prev.session_duration_min || 0.0;
 
     if (payload.session_energy_kwh !== undefined) {
       currentEnergy = Number(payload.session_energy_kwh);
@@ -516,6 +519,7 @@ class Database {
         duration = +(duration + (elapsedHours * 60)).toFixed(1);
         
         // Accumulate overall charger stats
+        if (!charger.stats) charger.stats = { totalEnergyKwh: 0, totalRevenue: 0, totalSessions: 0 };
         charger.stats.totalEnergyKwh = +(charger.stats.totalEnergyKwh + pKw * elapsedHours).toFixed(2);
         const rate = charger.tariff ? charger.tariff.ratePerKwh : 18.0;
         charger.stats.totalRevenue = +(charger.stats.totalRevenue + (pKw * elapsedHours * rate)).toFixed(2);
@@ -533,11 +537,11 @@ class Database {
       battery_soc: +Math.min(100, Math.max(0, soc)).toFixed(1),
       battery_req_voltage: +reqV.toFixed(1),
       battery_req_current: +reqA.toFixed(1),
-      battery_temp: payload.battery_temp !== undefined ? +Number(payload.battery_temp).toFixed(1) : charger.telemetry.battery_temp,
-      charger_temp: payload.charger_temp !== undefined ? +Number(payload.charger_temp).toFixed(1) : charger.telemetry.charger_temp,
+      battery_temp: payload.battery_temp !== undefined ? +Number(payload.battery_temp).toFixed(1) : (prev.battery_temp || 34.2),
+      charger_temp: payload.charger_temp !== undefined ? +Number(payload.charger_temp).toFixed(1) : (prev.charger_temp || 41.5),
       status: resolvedStatus,
-      charging_mode: payload.charging_mode || charger.telemetry.charging_mode || 'SPORT PLUS // CC FAST',
-      fault_code: payload.fault_code || 'NONE',
+      charging_mode: payload.charging_mode || prev.charging_mode || 'SPORT PLUS // CC FAST',
+      fault_code: payload.fault_code || prev.fault_code || 'NONE',
       session_energy_kwh: currentEnergy,
       session_duration_min: duration,
       power_kw: pKw,
@@ -556,6 +560,8 @@ class Database {
       power_kw: charger.telemetry.power_kw
     });
     if (charger.history.length > 50) charger.history.shift();
+
+    this.saveChargers();
 
     return charger;
   }
