@@ -5,6 +5,9 @@ const { Pool } = require('pg');
 // Initialize connection pool using DATABASE_URL from .env
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('localhost')
+    ? { rejectUnauthorized: false }
+    : false,
 });
 
 // Create tables on startup if they don't exist yet
@@ -58,7 +61,7 @@ router.get('/chargers', verifyApiKey, async (req, res) => {
     res.json({ success: true, count: result.rowCount, chargers: result.rows });
   } catch (err) {
     console.error('Error querying PostgreSQL:', err);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: err.message || String(err) });
   }
 });
 
@@ -78,7 +81,7 @@ router.post('/chargers', verifyApiKey, async (req, res) => {
     res.status(201).json({ success: true, message: 'Charger created', charger: result.rows[0] });
   } catch (err) {
     console.error('Error inserting charger:', err);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: err.message || String(err) });
   }
 });
 
@@ -105,7 +108,7 @@ router.post('/telemetry', verifyApiKey, async (req, res) => {
     res.status(201).json({ success: true, message: 'Telemetry recorded', telemetry: result.rows[0] });
   } catch (err) {
     console.error('Error inserting telemetry:', err);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: err.message || String(err) });
   }
 });
 
@@ -127,7 +130,7 @@ router.get('/telemetry', verifyApiKey, async (req, res) => {
     res.json({ success: true, count: result.rowCount, telemetry: result.rows });
   } catch (err) {
     console.error('Error querying telemetry:', err);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: err.message || String(err) });
   }
 });
 
