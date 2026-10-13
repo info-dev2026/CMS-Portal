@@ -8,7 +8,7 @@ const pool = new Pool({
 });
 // Middleware to verify API secret
 function verifyApiKey(req, res, next) {
-  const key = req.header('8a8980bf460ad644e86543c05db70579cfc4992cc939a76e451934b18dbb551d');
+  const key = req.header('x-api-key');
   if (key && key === process.env.API_SECRET) {
     return next();
   }
