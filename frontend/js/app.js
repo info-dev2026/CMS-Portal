@@ -4,6 +4,24 @@
 // Tariffs Revenue Breakdown, RFID Tokens, and Reliable Delete Operations
 // ==========================================================================
 
+// Dynamic backend configuration:
+// If running on localhost or 127.0.0.1, use relative paths.
+// If running on Vercel or any remote static host, route to Render backend.
+const IS_LOCAL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const BACKEND_ORIGIN = IS_LOCAL ? '' : 'https://cms-backend-0bce.onrender.com';
+const WS_BACKEND_URL = IS_LOCAL
+  ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`
+  : 'wss://cms-backend-0bce.onrender.com';
+
+// Intercept fetch calls to transparently prefix /api calls with Render backend URL
+const _nativeFetch = window.fetch;
+window.fetch = function (url, options) {
+  if (typeof url === 'string' && url.startsWith('/api/')) {
+    url = BACKEND_ORIGIN + url;
+  }
+  return _nativeFetch.call(this, url, options);
+};
+
 const FALLBACK_SEED_CHARGERS = [
   {
     id: "chg_muya1w8x_4zmz",
@@ -548,8 +566,7 @@ function initAddChargerPage() {
 // ==========================================================================
 
 function initWebSocket() {
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsUrl = `${protocol}//${window.location.host}`;
+  const wsUrl = WS_BACKEND_URL;
 
   try {
     state.ws = new WebSocket(wsUrl);
@@ -1537,7 +1554,7 @@ function updatePcbKeyView() {
   if (!charger) return;
 
   dom.inputPcbActiveKey.value = charger.apiKey;
-  const endpoint = `${window.location.origin}/api/telemetry`;
+  const endpoint = `${BACKEND_ORIGIN || window.location.origin}/api/telemetry`;
 
   dom.snippetArduino.textContent = `// ESP32 / Arduino C++ Example for SAAPHZONE PCB
 #include <WiFi.h>
@@ -1636,7 +1653,7 @@ except Exception as e:
 }
 
 function updateEndpointDisplay() {
-  dom.displayEndpointUrl.textContent = `${window.location.origin}/api/telemetry`;
+  dom.displayEndpointUrl.textContent = `${BACKEND_ORIGIN || window.location.origin}/api/telemetry`;
 }
 
 function initSimulator() {
