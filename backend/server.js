@@ -19,6 +19,15 @@ const FRONTEND_DIR = path.join(__dirname, '..', 'frontend');
 
 app.use(cors());
 app.use(express.json());
+
+// Sanitize URL to strip accidental newlines/carriage returns from HTTP clients
+app.use((req, res, next) => {
+  if (req.url) {
+    req.url = req.url.replace(/[\r\n]+/g, '').trim();
+  }
+  next();
+});
+
 app.use(express.static(FRONTEND_DIR));
 
 // WebSocket broadcast helper

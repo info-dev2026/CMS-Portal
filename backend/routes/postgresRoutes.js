@@ -37,8 +37,9 @@ const initDb = pool.query(`
 
 // Middleware to verify API secret
 function verifyApiKey(req, res, next) {
-  const key = req.header('x-api-key');
-  if (key && key === process.env.API_SECRET) {
+  const rawKey = req.header('x-api-key') || req.query['x-api-key'] || req.query.apiKey || (req.body && req.body.apiKey);
+  const key = rawKey ? String(rawKey).trim() : null;
+  if (key && key === (process.env.API_SECRET ? process.env.API_SECRET.trim() : '')) {
     return next();
   }
   return res.status(401).json({ success: false, error: 'Invalid API key' });

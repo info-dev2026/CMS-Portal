@@ -4,14 +4,18 @@ const db = require('../../database/db');
 
 module.exports = function(broadcast) {
   router.post('/', (req, res) => {
-    const apiKey = req.headers['x-api-key'] ||
+    const rawKey = req.headers['x-api-key'] ||
+      req.query['x-api-key'] ||
+      req.query.apiKey ||
       (req.headers['authorization'] ? req.headers['authorization'].replace(/^Bearer\s+/i, '') : null) ||
-      req.body.apiKey;
+      (req.body && req.body.apiKey);
+
+    const apiKey = rawKey ? String(rawKey).trim() : null;
 
     if (!apiKey) {
       return res.status(401).json({
         success: false,
-        error: 'Missing API key. Please provide x-api-key header or apiKey in payload.'
+        error: 'Missing API key. Please provide x-api-key header or ?x-api-key= query param.'
       });
     }
 
