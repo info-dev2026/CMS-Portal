@@ -344,6 +344,8 @@ function initApp() {
   initAddChargerPage();
   updateEndpointDisplay();
   fetchChargers();
+  // Continuous real-time auto-poll fallback every 3 seconds
+  setInterval(fetchChargers, 3000);
 }
 
 function initAuth() {
@@ -621,6 +623,8 @@ function handleWsMessage(msg) {
         if (chg.history.length > 50) chg.history.shift();
 
         updateDashboardTableRow(chg);
+        renderChargePointsCards();
+        updateKpis();
         if (state.selectedChargerId === msg.chargerId) {
           updateCockpitTelemetry();
         }
