@@ -26,23 +26,83 @@
     "maxCurrent": 350,
     "connectorType": "Custom CAN-Bus Lab Bench",
     "status": "CHARGING",
-    "lastSeen": 1791390421494,
+    "lastSeen": 1792315539827,
     "telemetry": {
-      "charger_voltage": 418.5,
-      "charger_current": 148.2,
-      "battery_soc": 78,
+      "charger_voltage": 420,
+      "charger_current": 150.5,
+      "battery_soc": 82,
       "battery_req_voltage": 425,
       "battery_req_current": 160,
-      "battery_temp": 34.2,
-      "charger_temp": 41.5,
+      "battery_temp": 35.1,
+      "charger_temp": 42,
       "status": "CHARGING",
       "charging_mode": "SPORT PLUS // CC FAST",
       "fault_code": "NONE",
-      "session_energy_kwh": 45.8,
+      "session_energy_kwh": 48.2,
       "session_duration_min": 22.4,
-      "power_kw": 62,
+      "power_kw": 63.2,
       "target_power_kw": 68,
-      "timestamp": 1791390421494
+      "timestamp": 1792315539827
+    },
+    "history": [
+      {
+        "timestamp": 1792315539827,
+        "charger_voltage": 420,
+        "charger_current": 150.5,
+        "battery_soc": 82,
+        "battery_req_voltage": 425,
+        "battery_req_current": 160,
+        "power_kw": 63.2
+      }
+    ]
+  },
+  {
+    "id": "chg_mvdmwos1_7h3t",
+    "name": "Testing AC",
+    "location": "TESTING_AC",
+    "apiKey": "evc_live_7c485026ece7077c3ad60309",
+    "isAc": true,
+    "credentials": {
+      "username": "TESTING_AC",
+      "password": "testac"
+    },
+    "tariff": {
+      "ratePerKwh": 18,
+      "currency": "₹",
+      "sessionFee": 40
+    },
+    "stats": {
+      "totalSessions": 0,
+      "totalEnergyKwh": 0,
+      "totalRevenue": 0
+    },
+    "completedSessions": [],
+    "rfidTokens": [
+      "RFID_TAG_4060"
+    ],
+    "createdAt": "2026-10-18T09:39:59.473Z",
+    "maxVoltage": 230,
+    "maxCurrent": 32,
+    "maxPowerKw": 7.36,
+    "connectorType": "Type 1 AC (J1772 - 7.4 kW 230V / 32A)",
+    "status": "CHARGING",
+    "lastSeen": 1792316476932,
+    "telemetry": {
+      "charger_voltage": 230,
+      "charger_current": 148.2,
+      "battery_soc": 0,
+      "battery_req_voltage": 230,
+      "battery_req_current": 32,
+      "battery_temp": 25,
+      "charger_temp": 25,
+      "status": "CHARGING",
+      "charging_mode": "SPORT PLUS // CC FAST",
+      "fault_code": "NONE",
+      "session_energy_kwh": 0,
+      "session_duration_min": 0,
+      "power_kw": 34.1,
+      "target_power_kw": 7.36,
+      "timestamp": 1792316476932
     },
     "history": []
   }

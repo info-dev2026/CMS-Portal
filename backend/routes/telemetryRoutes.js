@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../../database/db');
+const { recordTelemetryToPg } = require('./postgresRoutes');
 
 module.exports = function(broadcast) {
   router.post('/', (req, res) => {
@@ -35,6 +36,9 @@ module.exports = function(broadcast) {
       lastSeen: charger.lastSeen,
       stats: charger.stats
     });
+
+    // Also persist to PostgreSQL
+    recordTelemetryToPg(charger, charger.telemetry).catch(e => console.error('PG write error:', e.message));
 
     res.json({
       success: true,

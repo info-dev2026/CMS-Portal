@@ -223,6 +223,18 @@
             <span class="nav-label">PCB Simulator</span>
           </button>
 
+          <!-- 11. PostgreSQL Tabular Data -->
+          <button class="nav-item" data-target="pgTableView" id="navPgTable">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+              </svg>
+            </span>
+            <span class="nav-label">PostgreSQL Tables</span>
+          </button>
+
           <!-- Note: OCPI Roaming and Audit Log buttons removed per user request -->
         </div>
       </nav>
@@ -519,10 +531,14 @@
                 <div class="form-field">
                   <label for="pageChgConnector">Connector Standard</label>
                   <select id="pageChgConnector" class="input-text">
-                    <option value="CCS2 Combo (Liquid-Cooled)">CCS2 Combo (Liquid-Cooled 800V)</option>
+                    <option value="Type 2 AC (7.4 kW Single-Phase 230V / 32A)">Type 2 AC (7.4 kW Single-Phase 230V / 32A)</option>
+                    <option value="Type 2 AC (22 kW Three-Phase 415V / 32A)">Type 2 AC (22 kW Three-Phase 415V / 32A)</option>
+                    <option value="Type 2 AC (11 kW Three-Phase 415V / 16A)">Type 2 AC (11 kW Three-Phase 415V / 16A)</option>
+                    <option value="Type 1 AC (J1772 - 7.4 kW 230V / 32A)">Type 1 AC (J1772 - 7.4 kW 230V / 32A)</option>
+                    <option value="AC Bharat 001 (10 kW Commercial AC)">AC Bharat 001 (10 kW Commercial AC)</option>
+                    <option value="CCS2 Combo (Liquid-Cooled 800V DC Fast)">CCS2 Combo (Liquid-Cooled 800V DC Fast)</option>
                     <option value="CCS1 Rapid DC">CCS1 Rapid DC</option>
                     <option value="CHAdeMO 200A">CHAdeMO 200A</option>
-                    <option value="Type 2 AC 22kW">Type 2 Mennekes (AC 22kW)</option>
                     <option value="Custom CAN-Bus Lab Bench">Custom CAN-Bus Lab Bench</option>
                   </select>
                 </div>
@@ -530,15 +546,26 @@
 
               <!-- Section 2: Electrical Ratings -->
               <div class="form-section-block">
-                <h3 class="form-section-title">2. Electrical Output Limits</h3>
+                <h3 class="form-section-title">2. Electrical Output Limits & Auto-Generated Power</h3>
                 <div class="form-row">
                   <div class="form-field">
                     <label for="pageChgMaxV">Max Voltage Output (V)</label>
-                    <input type="number" id="pageChgMaxV" value="800" min="12" max="1200" class="input-text">
+                    <input type="number" id="pageChgMaxV" value="230" min="12" max="1200" class="input-text">
                   </div>
                   <div class="form-field">
                     <label for="pageChgMaxA">Max Current Output (A)</label>
-                    <input type="number" id="pageChgMaxA" value="350" min="1" max="600" class="input-text">
+                    <input type="number" id="pageChgMaxA" value="32" min="1" max="600" class="input-text">
+                  </div>
+                </div>
+
+                <!-- Auto-Generated Power Indicator -->
+                <div class="form-field" style="margin-top: 10px;">
+                  <div id="acPowerCalculationBadge" style="background: rgba(0, 163, 224, 0.08); border: 1px solid var(--primary-cyan); padding: 12px 16px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                    <div>
+                      <strong style="color: var(--primary-cyan); font-size: 0.95rem;">⚡ Auto-Generated Power: <span id="lblCalculatedPowerKw">7.36 kW</span></strong>
+                      <div style="color: var(--text-muted); font-size: 0.78rem; margin-top: 3px;" id="lblCalculatedFormula">Formula: P = (230V × 32A) / 1000 = 7.36 kW • Max Energy Rate: 7.36 kWh/hr</div>
+                    </div>
+                    <span class="badge-status online" id="lblChargerTypeTag">AC Single-Phase</span>
                   </div>
                 </div>
               </div>
@@ -1065,6 +1092,57 @@
                 <div class="log-line system">[SYSTEM] SAAPHZONE Simulator ready. Telemetry verified with unique PCB key.
                 </div>
               </div>
+            </div>
+          </div>
+        <!-- ==================================================================
+             VIEW 11: POSTGRESQL DATABASE TABULAR VIEW (Live Tables & Records)
+             ================================================================== -->
+        <section class="content-view" id="viewPgTable">
+          <div class="section-title-bar">
+            <div>
+              <h2 class="section-heading">PostgreSQL Database Records (Tabular View)</h2>
+              <p class="section-sub">Live tabular data stored in PostgreSQL 18 (Database: <strong>cms_backend</strong> on localhost:5432)</p>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span class="badge-status online" id="pgServerStatusBadge">● PostgreSQL Online</span>
+              <button class="btn-outline-sm" id="btnPgRefresh">🔄 Refresh</button>
+              <button class="btn-outline-sm" id="btnPgSyncJson">⚡ Sync from JSON</button>
+              <button class="btn-primary-cyan" id="btnPgExportCsv">📥 Export CSV</button>
+            </div>
+          </div>
+
+          <!-- Table Selector & Filters Row -->
+          <div class="csms-table-card" style="margin-bottom:14px; padding:12px 18px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="role-tab active" id="tabPgChargers" style="padding:6px 16px; font-size:0.85rem; cursor:pointer;">Chargers Table (<span id="pgChargersCount">0</span>)</button>
+                <button class="role-tab" id="tabPgTelemetry" style="padding:6px 16px; font-size:0.85rem; cursor:pointer;">Telemetry Logs Table (<span id="pgTelemetryCount">0</span>)</button>
+                <button class="role-tab" id="tabPgSessions" style="padding:6px 16px; font-size:0.85rem; cursor:pointer;">Completed Sessions (<span id="pgSessionsCount">0</span>)</button>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <input type="text" id="inputPgFilter" placeholder="Filter rows in table..." class="input-text" style="width:240px; padding:6px 12px; font-size:0.82rem;">
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabular Card Container -->
+          <div class="csms-table-card">
+            <div class="table-card-header">
+              <div>
+                <h3 class="table-title" id="pgTableActiveTitle">chargers Table</h3>
+                <span class="table-subtitle" id="pgTableActiveSub">Displaying live rows directly queried from PostgreSQL</span>
+              </div>
+            </div>
+
+            <div class="table-responsive" style="max-height: 550px; overflow-y: auto;">
+              <table class="csms-data-table" id="pgLiveTable">
+                <thead id="pgLiveTableHead">
+                  <!-- Dynamic Headers -->
+                </thead>
+                <tbody id="pgLiveTableBody">
+                  <!-- Dynamic Rows -->
+                </tbody>
+              </table>
             </div>
           </div>
         </section>

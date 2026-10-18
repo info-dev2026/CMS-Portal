@@ -20,7 +20,6 @@ const FRONTEND_DIR = path.join(__dirname, '..', 'frontend');
 app.use(cors());
 app.use(express.json());
 
-// Sanitize URL to strip accidental newlines/carriage returns from HTTP clients
 app.use((req, res, next) => {
   if (req.url) {
     req.url = req.url.replace(/[\r\n]+/g, '').trim();
@@ -30,7 +29,6 @@ app.use((req, res, next) => {
 
 app.use(express.static(FRONTEND_DIR));
 
-// WebSocket broadcast helper
 function broadcast(data) {
   const payload = JSON.stringify(data);
   wss.clients.forEach(client => {
@@ -108,7 +106,7 @@ wss.on('connection', (ws) => {
       if (data.type === 'PING') {
         ws.send(JSON.stringify({ type: 'PONG', timestamp: Date.now() }));
       }
-    } catch (e) {}
+    } catch (e) { }
   });
 });
 

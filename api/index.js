@@ -26,6 +26,7 @@ app.get('/api', (req, res) => {
 
 // Mount API routes
 app.use('/api/auth', require('../backend/routes/authRoutes'));
+app.use('/api/postgres', require('../backend/routes/postgresRoutes'));
 app.use('/api/chargers', require('../backend/routes/chargerRoutes')(broadcast));
 app.use('/api/telemetry', require('../backend/routes/telemetryRoutes')(broadcast));
 app.use('/api/tariffs', require('../backend/routes/tariffRoutes')(broadcast));

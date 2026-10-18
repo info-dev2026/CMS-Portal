@@ -294,15 +294,60 @@ class Database {
     return this.chargers.find(c => c.apiKey === apiKey);
   }
 
+  isAcConnector(connectorType) {
+    if (!connectorType) return false;
+    const str = String(connectorType).toUpperCase();
+    return str.includes('AC') || str.includes('TYPE 2') || str.includes('TYPE 1') || str.includes('BHARAT') || str.includes('J1772') || str.includes('MENNEKES') || str.includes('230V') || str.includes('415V');
+  }
+
+  calculatePowerKw(voltage, current, isAc, connectorType = '') {
+    const v = Number(voltage) || 0;
+    const a = Number(current) || 0;
+    if (v <= 0 || a <= 0) return 0.0;
+
+    const str = String(connectorType).toUpperCase();
+    const is3Phase = isAc && (v >= 380 || str.includes('THREE') || str.includes('415') || str.includes('3-PHASE') || str.includes('22KW') || str.includes('11KW'));
+
+    if (is3Phase) {
+      // 3-Phase AC formula: P = (sqrt(3) * V * I) / 1000
+      return +( (Math.sqrt(3) * v * a) / 1000 ).toFixed(2);
+    } else {
+      // Single-phase AC or DC: P = (V * I) / 1000
+      return +( (v * a) / 1000 ).toFixed(2);
+    }
+  }
+
   addCharger(data) {
     const id = 'chg_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6);
     const apiKey = generateApiKey();
+
+    const connector = (data.connectorType || 'CCS2 Combo').trim();
+    const isAc = this.isAcConnector(connector);
+
+    let maxV = Number(data.maxVoltage);
+    let maxA = Number(data.maxCurrent);
+
+    if (isAc) {
+      if (!maxV || maxV > 500) {
+        maxV = connector.toLowerCase().includes('three') || connector.includes('415') || connector.includes('22kw') || connector.includes('11kw') ? 415 : 230;
+      }
+      if (!maxA || maxA > 100) {
+        maxA = connector.includes('16a') || connector.includes('11kw') ? 16 : 32;
+      }
+    } else {
+      maxV = maxV || 800;
+      maxA = maxA || 350;
+    }
+
+    // Automatically generate the power in kW / kWh rate
+    const calculatedPowerKw = this.calculatePowerKw(maxV, maxA, isAc, connector);
 
     const newCharger = {
       id: id,
       name: data.name.trim(),
       location: data.location ? data.location.trim() : 'Unassigned Bay',
       apiKey: apiKey,
+      isAc: isAc,
       credentials: {
         username: data.username ? data.username.trim() : `bay0${this.chargers.length + 1}`,
         password: data.password ? data.password.trim() : 'password123'
@@ -317,28 +362,30 @@ class Database {
         totalEnergyKwh: 0.0,
         totalRevenue: 0.0
       },
+      completedSessions: [],
       rfidTokens: data.rfidToken ? [data.rfidToken.trim()] : [`RFID_TAG_${Math.floor(1000 + Math.random() * 9000)}`],
       createdAt: new Date().toISOString(),
-      maxVoltage: Number(data.maxVoltage) || 800,
-      maxCurrent: Number(data.maxCurrent) || 350,
-      connectorType: data.connectorType || 'CCS2 Combo',
+      maxVoltage: maxV,
+      maxCurrent: maxA,
+      maxPowerKw: calculatedPowerKw,
+      connectorType: connector,
       status: 'ONLINE',
       lastSeen: Date.now(),
       telemetry: {
-        charger_voltage: 0.0,
+        charger_voltage: maxV,
         charger_current: 0.0,
         battery_soc: 0.0,
-        battery_req_voltage: 0.0,
-        battery_req_current: 0.0,
+        battery_req_voltage: maxV,
+        battery_req_current: maxA,
         battery_temp: 25.0,
         charger_temp: 25.0,
         status: 'IDLE',
-        charging_mode: 'STANDBY READY',
+        charging_mode: isAc ? 'AC STANDARD // STANDBY' : 'STANDBY READY',
         fault_code: 'NONE',
         session_energy_kwh: 0.0,
         session_duration_min: 0.0,
         power_kw: 0.0,
-        target_power_kw: 0.0,
+        target_power_kw: calculatedPowerKw,
         timestamp: Date.now()
       },
       history: []
@@ -497,18 +544,28 @@ class Database {
 
     const now = Date.now();
     const prev = charger.telemetry || {};
+    const isAc = this.isAcConnector(charger.connectorType);
 
-    const v = payload.charger_voltage !== undefined ? Number(payload.charger_voltage) : (payload.voltage !== undefined ? Number(payload.voltage) : (prev.charger_voltage || 418.5));
-    const a = payload.charger_current !== undefined ? Number(payload.charger_current) : (payload.current !== undefined ? Number(payload.current) : (prev.charger_current || 148.2));
+    const v = payload.charger_voltage !== undefined ? Number(payload.charger_voltage) : (payload.voltage !== undefined ? Number(payload.voltage) : (prev.charger_voltage || (isAc ? 230.0 : 418.5)));
+    const a = payload.charger_current !== undefined ? Number(payload.charger_current) : (payload.current !== undefined ? Number(payload.current) : (prev.charger_current || (isAc ? 32.0 : 148.2)));
     const rawSoc = payload.battery_soc !== undefined ? payload.battery_soc : (payload.soc !== undefined ? payload.soc : prev.battery_soc);
     const soc = rawSoc !== undefined ? Number(rawSoc) : 78.0;
-    const reqV = payload.battery_req_voltage !== undefined ? Number(payload.battery_req_voltage) : (prev.battery_req_voltage || 425.0);
-    const reqA = payload.battery_req_current !== undefined ? Number(payload.battery_req_current) : (prev.battery_req_current || 160.0);
-    const pKw = payload.power_kw !== undefined ? Number(payload.power_kw) : +((v * a) / 1000).toFixed(2);
-    const targetPKw = payload.target_power_kw !== undefined ? Number(payload.target_power_kw) : +((reqV * reqA) / 1000).toFixed(2);
+    const reqV = payload.battery_req_voltage !== undefined ? Number(payload.battery_req_voltage) : (prev.battery_req_voltage || (isAc ? 230.0 : 425.0));
+    const reqA = payload.battery_req_current !== undefined ? Number(payload.battery_req_current) : (prev.battery_req_current || (isAc ? 32.0 : 160.0));
+
+    // Automatically calculate power in kW for AC or DC
+    const pKw = payload.power_kw !== undefined ? Number(payload.power_kw) : this.calculatePowerKw(v, a, isAc, charger.connectorType);
+    const targetPKw = payload.target_power_kw !== undefined ? Number(payload.target_power_kw) : this.calculatePowerKw(reqV, reqA, isAc, charger.connectorType);
 
     let currentEnergy = prev.session_energy_kwh || 0.0;
     let duration = prev.session_duration_min || 0.0;
+
+    // When starting a new session after a previous completed session, reset session values fresh from 0
+    if (charger.sessionPendingReset && soc < 100 && (v > 10 && a > 0.5)) {
+      currentEnergy = 0.0;
+      duration = 0.0;
+      charger.sessionPendingReset = false;
+    }
 
     if (payload.session_energy_kwh !== undefined) {
       currentEnergy = Number(payload.session_energy_kwh);
@@ -517,16 +574,60 @@ class Database {
       if (elapsedHours > 0 && elapsedHours < 0.1) {
         currentEnergy = +(currentEnergy + pKw * elapsedHours).toFixed(3);
         duration = +(duration + (elapsedHours * 60)).toFixed(1);
-        
-        // Accumulate overall charger stats
-        if (!charger.stats) charger.stats = { totalEnergyKwh: 0, totalRevenue: 0, totalSessions: 0 };
-        charger.stats.totalEnergyKwh = +(charger.stats.totalEnergyKwh + pKw * elapsedHours).toFixed(2);
-        const rate = charger.tariff ? charger.tariff.ratePerKwh : 18.0;
-        charger.stats.totalRevenue = +(charger.stats.totalRevenue + (pKw * elapsedHours * rate)).toFixed(2);
       }
     }
 
     let resolvedStatus = payload.status || (v > 20 && a > 0.5 ? 'CHARGING' : 'ONLINE');
+
+    // =========================================================================
+    // AC CHARGER FULLY CHARGED AUTOMATIC LOGIC & DATABASE ACCUMULATION
+    // =========================================================================
+    const isFullyCharged = soc >= 100 || resolvedStatus === 'CHARGED' || resolvedStatus === 'COMPLETED';
+
+    if (isAc && isFullyCharged) {
+      resolvedStatus = 'CHARGED';
+
+      // If active session delivered energy, commit calculation to database!
+      if (currentEnergy > 0 || (prev.session_energy_kwh && prev.session_energy_kwh > 0)) {
+        const completedEnergy = +(currentEnergy > 0 ? currentEnergy : prev.session_energy_kwh).toFixed(2);
+        const completedDuration = +(duration > 0 ? duration : (prev.session_duration_min || 0)).toFixed(1);
+
+        const rate = charger.tariff ? (Number(charger.tariff.ratePerKwh) || 18.0) : 18.0;
+        const sessionFee = charger.tariff ? (Number(charger.tariff.sessionFee) || 0.0) : 0.0;
+        const sessionRevenue = +((completedEnergy * rate) + sessionFee).toFixed(2);
+
+        // 1. Add calculation to database stats accordingly
+        if (!charger.stats) charger.stats = { totalEnergyKwh: 0, totalRevenue: 0, totalSessions: 0 };
+        charger.stats.totalSessions = (charger.stats.totalSessions || 0) + 1;
+        charger.stats.totalEnergyKwh = +((charger.stats.totalEnergyKwh || 0) + completedEnergy).toFixed(2);
+        charger.stats.totalRevenue = +((charger.stats.totalRevenue || 0) + sessionRevenue).toFixed(2);
+
+        // 2. Add completed session log in database
+        if (!charger.completedSessions) charger.completedSessions = [];
+        const sessionRecord = {
+          sessionId: 'sess_' + Date.now().toString(36),
+          chargerId: charger.id,
+          chargerName: charger.name,
+          connectorType: charger.connectorType,
+          energyKwh: completedEnergy,
+          durationMin: completedDuration,
+          revenue: sessionRevenue,
+          batterySocEnd: 100,
+          completedAt: new Date().toISOString()
+        };
+        charger.completedSessions.push(sessionRecord);
+        charger.lastCompletedSession = sessionRecord;
+
+        // 3. Automatically get 0 for the next session
+        currentEnergy = 0.0;
+        duration = 0.0;
+        charger.sessionPendingReset = true;
+      } else {
+        // Already fully charged; ensure delivered session stays 0 for next session
+        currentEnergy = 0.0;
+        duration = 0.0;
+      }
+    }
 
     charger.status = resolvedStatus;
     charger.lastSeen = now;
@@ -540,11 +641,11 @@ class Database {
       battery_temp: payload.battery_temp !== undefined ? +Number(payload.battery_temp).toFixed(1) : (prev.battery_temp || 34.2),
       charger_temp: payload.charger_temp !== undefined ? +Number(payload.charger_temp).toFixed(1) : (prev.charger_temp || 41.5),
       status: resolvedStatus,
-      charging_mode: payload.charging_mode || prev.charging_mode || 'SPORT PLUS // CC FAST',
+      charging_mode: payload.charging_mode || prev.charging_mode || (isAc ? 'AC SMART // LEVEL 2' : 'SPORT PLUS // CC FAST'),
       fault_code: payload.fault_code || prev.fault_code || 'NONE',
       session_energy_kwh: currentEnergy,
       session_duration_min: duration,
-      power_kw: pKw,
+      power_kw: resolvedStatus === 'CHARGED' ? 0.0 : pKw,
       target_power_kw: targetPKw,
       timestamp: now
     };
