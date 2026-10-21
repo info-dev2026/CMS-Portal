@@ -26,10 +26,10 @@
     "maxCurrent": 350,
     "connectorType": "Custom CAN-Bus Lab Bench",
     "status": "CHARGING",
-    "lastSeen": 1792315539827,
+    "lastSeen": 1792562083326,
     "telemetry": {
       "charger_voltage": 420,
-      "charger_current": 150.5,
+      "charger_current": 148.2,
       "battery_soc": 82,
       "battery_req_voltage": 425,
       "battery_req_current": 160,
@@ -40,9 +40,9 @@
       "fault_code": "NONE",
       "session_energy_kwh": 48.2,
       "session_duration_min": 22.4,
-      "power_kw": 63.2,
+      "power_kw": 62.2,
       "target_power_kw": 68,
-      "timestamp": 1792315539827
+      "timestamp": 1792562083326
     },
     "history": [
       {
@@ -57,14 +57,14 @@
     ]
   },
   {
-    "id": "chg_mvdmwos1_7h3t",
-    "name": "Testing AC",
-    "location": "TESTING_AC",
-    "apiKey": "evc_live_7c485026ece7077c3ad60309",
+    "id": "chg_mvhont6j_u81x",
+    "name": "TESTING AC",
+    "location": "TEST_AC",
+    "apiKey": "evc_live_0d975f1a5360db2917e90715",
     "isAc": true,
     "credentials": {
-      "username": "TESTING_AC",
-      "password": "testac"
+      "username": "AC",
+      "password": "test@ac"
     },
     "tariff": {
       "ratePerKwh": 18,
@@ -78,31 +78,31 @@
     },
     "completedSessions": [],
     "rfidTokens": [
-      "RFID_TAG_4060"
+      "RFID_TAG_2720"
     ],
-    "createdAt": "2026-10-18T09:39:59.473Z",
-    "maxVoltage": 230,
+    "createdAt": "2026-10-21T05:40:09.212Z",
+    "maxVoltage": 415,
     "maxCurrent": 32,
-    "maxPowerKw": 7.36,
-    "connectorType": "Type 1 AC (J1772 - 7.4 kW 230V / 32A)",
-    "status": "CHARGING",
-    "lastSeen": 1792316476932,
+    "maxPowerKw": 23,
+    "connectorType": "Type 2 AC (22 kW Three-Phase 415V / 32A)",
+    "status": "ONLINE",
+    "lastSeen": 1792561872859,
     "telemetry": {
-      "charger_voltage": 230,
-      "charger_current": 148.2,
+      "charger_voltage": 415,
+      "charger_current": 0,
       "battery_soc": 0,
-      "battery_req_voltage": 230,
+      "battery_req_voltage": 415,
       "battery_req_current": 32,
       "battery_temp": 25,
       "charger_temp": 25,
-      "status": "CHARGING",
-      "charging_mode": "SPORT PLUS // CC FAST",
+      "status": "ONLINE",
+      "charging_mode": "STANDBY // READY",
       "fault_code": "NONE",
       "session_energy_kwh": 0,
       "session_duration_min": 0,
-      "power_kw": 34.1,
-      "target_power_kw": 7.36,
-      "timestamp": 1792316476932
+      "power_kw": 0,
+      "target_power_kw": 23,
+      "timestamp": 1792561872859
     },
     "history": []
   }

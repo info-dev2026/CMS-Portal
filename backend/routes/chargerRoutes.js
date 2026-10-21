@@ -99,14 +99,35 @@ module.exports = function(broadcast) {
 
     if (!charger.telemetry) charger.telemetry = {};
 
+    const isAc = charger.isAc === true || db.isAcConnector(charger.connectorType);
+
     if (isTurnOn) {
+      // Starting a new session after a held (fully charged) AC session -> restart kWh from 0
+      if (isAc && charger.sessionPendingReset) {
+        charger.telemetry.session_energy_kwh = 0.0;
+        charger.telemetry.session_duration_min = 0.0;
+        if (Number(charger.telemetry.battery_soc) >= 100) charger.telemetry.battery_soc = 0.0;
+        charger.sessionPendingReset = false;
+      }
+
       charger.telemetry.status = 'CHARGING';
-      charger.telemetry.charger_voltage = charger.telemetry.charger_voltage > 100 ? charger.telemetry.charger_voltage : 418.5;
-      charger.telemetry.charger_current = charger.telemetry.charger_current > 10 ? charger.telemetry.charger_current : 148.2;
-      const v = Number(charger.telemetry.charger_voltage);
-      const a = Number(charger.telemetry.charger_current);
-      charger.telemetry.power_kw = Number((v * a / 1000).toFixed(1));
-      charger.telemetry.charging_mode = 'SPORT PLUS // CC FAST';
+      if (isAc) {
+        const acV = Number(charger.maxVoltage) || 230;
+        const acA = Number(charger.maxCurrent) || 32;
+        const curV = Number(charger.telemetry.charger_voltage);
+        const curA = Number(charger.telemetry.charger_current);
+        charger.telemetry.charger_voltage = curV > 100 && curV <= acV * 1.1 ? curV : acV;
+        charger.telemetry.charger_current = curA > 0.5 && curA <= acA ? curA : acA;
+        charger.telemetry.power_kw = db.calculatePowerKw(charger.telemetry.charger_voltage, charger.telemetry.charger_current, true, charger.connectorType);
+        charger.telemetry.charging_mode = 'AC SMART // LEVEL 2';
+      } else {
+        charger.telemetry.charger_voltage = charger.telemetry.charger_voltage > 100 ? charger.telemetry.charger_voltage : 418.5;
+        charger.telemetry.charger_current = charger.telemetry.charger_current > 10 ? charger.telemetry.charger_current : 148.2;
+        const v = Number(charger.telemetry.charger_voltage);
+        const a = Number(charger.telemetry.charger_current);
+        charger.telemetry.power_kw = Number((v * a / 1000).toFixed(1));
+        charger.telemetry.charging_mode = 'SPORT PLUS // CC FAST';
+      }
     } else {
       charger.telemetry.status = 'ONLINE';
       charger.telemetry.power_kw = 0.0;
@@ -126,7 +147,8 @@ module.exports = function(broadcast) {
       type: 'TELEMETRY_UPDATE',
       chargerId: charger.id,
       telemetry: charger.telemetry,
-      status: charger.status
+      status: charger.status,
+      sessionPendingReset: charger.sessionPendingReset === true
     });
 
     res.json({

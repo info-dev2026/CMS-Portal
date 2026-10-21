@@ -544,12 +544,13 @@ class Database {
 
     const now = Date.now();
     const prev = charger.telemetry || {};
-    const isAc = this.isAcConnector(charger.connectorType);
+    const isAc = charger.isAc === true || this.isAcConnector(charger.connectorType);
 
     const v = payload.charger_voltage !== undefined ? Number(payload.charger_voltage) : (payload.voltage !== undefined ? Number(payload.voltage) : (prev.charger_voltage || (isAc ? 230.0 : 418.5)));
     const a = payload.charger_current !== undefined ? Number(payload.charger_current) : (payload.current !== undefined ? Number(payload.current) : (prev.charger_current || (isAc ? 32.0 : 148.2)));
-    const rawSoc = payload.battery_soc !== undefined ? payload.battery_soc : (payload.soc !== undefined ? payload.soc : prev.battery_soc);
-    const soc = rawSoc !== undefined ? Number(rawSoc) : 78.0;
+    const payloadSoc = payload.battery_soc !== undefined ? payload.battery_soc : payload.soc;
+    const rawSoc = payloadSoc !== undefined ? payloadSoc : prev.battery_soc;
+    let soc = rawSoc !== undefined ? Number(rawSoc) : 78.0;
     const reqV = payload.battery_req_voltage !== undefined ? Number(payload.battery_req_voltage) : (prev.battery_req_voltage || (isAc ? 230.0 : 425.0));
     const reqA = payload.battery_req_current !== undefined ? Number(payload.battery_req_current) : (prev.battery_req_current || (isAc ? 32.0 : 160.0));
 
@@ -560,16 +561,46 @@ class Database {
     let currentEnergy = prev.session_energy_kwh || 0.0;
     let duration = prev.session_duration_min || 0.0;
 
-    // When starting a new session after a previous completed session, reset session values fresh from 0
-    if (charger.sessionPendingReset && soc < 100 && (v > 10 && a > 0.5)) {
+    const payloadStatus = payload.status ? String(payload.status).toUpperCase() : '';
+    const payloadSaysFull = payloadStatus === 'CHARGED' || payloadStatus === 'COMPLETED';
+
+    // =========================================================================
+    // AC SESSION LIFECYCLE
+    //   1. ACTIVE  -> kWh accumulates from V x A x time
+    //   2. HELD    -> battery full: delivered kWh is frozen (stays constant)
+    //   3. NEW     -> next session starts: kWh resets to 0 and counts again
+    // `sessionPendingReset` === true means the last session is complete & HELD.
+    // =========================================================================
+    let sessionHeld = isAc && charger.sessionPendingReset === true;
+
+    if (sessionHeld) {
+      const payloadSocBelowFull = payloadSoc === undefined || Number(payloadSoc) < 100;
+      const isNewSessionStarting = v > 10 && a > 0.5 && !payloadSaysFull && payloadSocBelowFull;
+
+      if (isNewSessionStarting) {
+        // NEW session: start delivered energy & timer fresh from 0
+        currentEnergy = 0.0;
+        duration = 0.0;
+        charger.sessionPendingReset = false;
+        sessionHeld = false;
+        // AC PCBs often don't report SoC; don't let the previous 100% re-trigger "full"
+        if (payloadSoc === undefined && soc >= 100) soc = 0.0;
+      }
+    } else if (!isAc && charger.sessionPendingReset && soc < 100 && (v > 10 && a > 0.5)) {
+      // Legacy DC behaviour: reset values for a fresh session
       currentEnergy = 0.0;
       duration = 0.0;
       charger.sessionPendingReset = false;
     }
 
-    if (payload.session_energy_kwh !== undefined) {
+    if (sessionHeld) {
+      // HELD: keep the last delivered kWh & duration constant until next session
+      currentEnergy = Number(prev.session_energy_kwh) || 0.0;
+      duration = Number(prev.session_duration_min) || 0.0;
+    } else if (payload.session_energy_kwh !== undefined) {
       currentEnergy = Number(payload.session_energy_kwh);
     } else if (charger.lastSeen && v > 10 && a > 0.5) {
+      // Convert live charging voltage & current into delivered energy (kWh)
       const elapsedHours = (now - charger.lastSeen) / (1000 * 3600);
       if (elapsedHours > 0 && elapsedHours < 0.1) {
         currentEnergy = +(currentEnergy + pKw * elapsedHours).toFixed(3);
@@ -582,15 +613,18 @@ class Database {
     // =========================================================================
     // AC CHARGER FULLY CHARGED AUTOMATIC LOGIC & DATABASE ACCUMULATION
     // =========================================================================
-    const isFullyCharged = soc >= 100 || resolvedStatus === 'CHARGED' || resolvedStatus === 'COMPLETED';
+    const isFullyCharged = soc >= 100 || payloadSaysFull;
 
-    if (isAc && isFullyCharged) {
+    if (isAc && sessionHeld) {
+      // Session already committed - just remain in CHARGED state with held kWh
+      resolvedStatus = 'CHARGED';
+    } else if (isAc && isFullyCharged) {
       resolvedStatus = 'CHARGED';
 
-      // If active session delivered energy, commit calculation to database!
-      if (currentEnergy > 0 || (prev.session_energy_kwh && prev.session_energy_kwh > 0)) {
-        const completedEnergy = +(currentEnergy > 0 ? currentEnergy : prev.session_energy_kwh).toFixed(2);
-        const completedDuration = +(duration > 0 ? duration : (prev.session_duration_min || 0)).toFixed(1);
+      // If active session delivered energy, commit calculation to database (once)!
+      if (currentEnergy > 0) {
+        const completedEnergy = +currentEnergy.toFixed(3);
+        const completedDuration = +duration.toFixed(1);
 
         const rate = charger.tariff ? (Number(charger.tariff.ratePerKwh) || 18.0) : 18.0;
         const sessionFee = charger.tariff ? (Number(charger.tariff.sessionFee) || 0.0) : 0.0;
@@ -618,14 +652,10 @@ class Database {
         charger.completedSessions.push(sessionRecord);
         charger.lastCompletedSession = sessionRecord;
 
-        // 3. Automatically get 0 for the next session
-        currentEnergy = 0.0;
-        duration = 0.0;
+        // 3. HOLD delivered kWh constant; it resets to 0 when the next session starts
+        currentEnergy = completedEnergy;
+        duration = completedDuration;
         charger.sessionPendingReset = true;
-      } else {
-        // Already fully charged; ensure delivered session stays 0 for next session
-        currentEnergy = 0.0;
-        duration = 0.0;
       }
     }
 

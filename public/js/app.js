@@ -174,7 +174,8 @@ const dom = {
     usersView: document.getElementById('viewUsers'),
     pcbIntegrationView: document.getElementById('viewPcbIntegration'),
     sessionsView: document.getElementById('viewCsmsDashboard'),
-    viewSimulator: document.getElementById('viewSimulator')
+    viewSimulator: document.getElementById('viewSimulator'),
+    pgTableView: document.getElementById('viewPgTable')
   },
 
   // KPI Elements
@@ -219,12 +220,14 @@ const dom = {
   cockpitCircleFill: document.getElementById('cockpitCircleFill'),
   cockpitBattSubDesc: document.getElementById('cockpitBattSubDesc'),
   dialPowerValue: document.getElementById('dialPowerValue'),
+  dialKwUnit: document.getElementById('dialKwUnit'),
   dialSecondaryMetrics: document.getElementById('dialSecondaryMetrics'),
   dialModePillText: document.getElementById('dialModePillText'),
   dialStatusGear: document.getElementById('dialStatusGear'),
   saaphDialProgressArc: document.getElementById('saaphDialProgressArc'),
   saaphDialTicksGroup: document.getElementById('saaphDialTicksGroup'),
   cockpitLeftPowerNum: document.getElementById('cockpitLeftPowerNum'),
+  cockpitLeftPowerUnit: document.getElementById('cockpitLeftPowerUnit'),
   cockpitLeftModeSub: document.getElementById('cockpitLeftModeSub'),
   cockpitWaveformCanvas: document.getElementById('cockpitWaveformCanvas'),
   cockpitLeftKeyShort: document.getElementById('cockpitLeftKeyShort'),
@@ -233,8 +236,6 @@ const dom = {
   cockpitRadarNum: document.getElementById('cockpitRadarNum'),
   cockpitSessionKwh: document.getElementById('cockpitSessionKwh'),
   cockpitSessionTime: document.getElementById('cockpitSessionTime'),
-  cockpitRangeVal: document.getElementById('cockpitRangeVal'),
-  cockpitRangeBar: document.getElementById('cockpitRangeBar'),
   cockpitSocVal: document.getElementById('cockpitSocVal'),
   cockpitSocBar: document.getElementById('cockpitSocBar'),
   cockpitActualV: document.getElementById('cockpitActualV'),
@@ -342,6 +343,7 @@ function initApp() {
   initModals();
   initNavigation();
   initAddChargerPage();
+  initPgTableView();
   updateEndpointDisplay();
   fetchChargers();
   // Continuous real-time auto-poll fallback every 3 seconds
@@ -527,6 +529,80 @@ function initAddChargerPage() {
   dom.btnCancelAddPage.onclick = () => switchView('csmsDashboard');
   dom.btnCancelAddPageBottom.onclick = () => switchView('csmsDashboard');
 
+  const connSelect = document.getElementById('pageChgConnector');
+  const vInput = document.getElementById('pageChgMaxV');
+  const aInput = document.getElementById('pageChgMaxA');
+
+  function updateAddChargerPowerCalc() {
+    const lblPower = document.getElementById('lblCalculatedPowerKw');
+    const lblFormula = document.getElementById('lblCalculatedFormula');
+    const lblType = document.getElementById('lblChargerTypeTag');
+
+    if (!connSelect || !vInput || !aInput || !lblPower) return;
+
+    const conn = connSelect.value.toUpperCase();
+    const isAc = conn.includes('AC') || conn.includes('TYPE 2') || conn.includes('TYPE 1') || conn.includes('BHARAT');
+    const is3Phase = isAc && (conn.includes('THREE') || conn.includes('415') || conn.includes('22KW') || conn.includes('11KW') || Number(vInput.value) >= 380);
+
+    const v = Number(vInput.value) || 0;
+    const a = Number(aInput.value) || 0;
+
+    let powerKw = 0;
+    let formulaText = '';
+
+    if (is3Phase) {
+      powerKw = +((Math.sqrt(3) * v * a) / 1000).toFixed(2);
+      formulaText = `Formula: P = (√3 × ${v}V × ${a}A) / 1000 = ${powerKw} kW • Max Rate: ${powerKw} kWh/hr`;
+      if (lblType) {
+        lblType.className = 'badge-status online';
+        lblType.textContent = 'AC Three-Phase (415V)';
+      }
+    } else if (isAc) {
+      powerKw = +((v * a) / 1000).toFixed(2);
+      formulaText = `Formula: P = (${v}V × ${a}A) / 1000 = ${powerKw} kW • Max Rate: ${powerKw} kWh/hr`;
+      if (lblType) {
+        lblType.className = 'badge-status online';
+        lblType.textContent = 'AC Single-Phase (230V)';
+      }
+    } else {
+      powerKw = +((v * a) / 1000).toFixed(1);
+      formulaText = `Formula: P = (${v}V × ${a}A) / 1000 = ${powerKw} kW • DC Fast Bus`;
+      if (lblType) {
+        lblType.className = 'badge-status charging';
+        lblType.textContent = 'DC Fast Charger';
+      }
+    }
+
+    lblPower.textContent = `${powerKw} kW (${powerKw} kWh/hr)`;
+    if (lblFormula) lblFormula.textContent = formulaText;
+  }
+
+  if (connSelect) {
+    connSelect.onchange = () => {
+      const val = connSelect.value.toUpperCase();
+      if (val.includes('22KW') || val.includes('THREE') || val.includes('415V')) {
+        if (vInput) vInput.value = 415;
+        if (aInput) aInput.value = 32;
+      } else if (val.includes('11KW')) {
+        if (vInput) vInput.value = 415;
+        if (aInput) aInput.value = 16;
+      } else if (val.includes('AC') || val.includes('TYPE 2') || val.includes('TYPE 1') || val.includes('BHARAT')) {
+        if (vInput) vInput.value = 230;
+        if (aInput) aInput.value = 32;
+      } else {
+        if (vInput) vInput.value = 800;
+        if (aInput) aInput.value = 350;
+      }
+      updateAddChargerPowerCalc();
+    };
+  }
+
+  if (vInput) vInput.oninput = updateAddChargerPowerCalc;
+  if (aInput) aInput.oninput = updateAddChargerPowerCalc;
+
+  // Initial calculation trigger
+  updateAddChargerPowerCalc();
+
   // Submit form on dedicated page
   dom.formAddChargerPage.onsubmit = async (e) => {
     e.preventDefault();
@@ -551,7 +627,7 @@ function initAddChargerPage() {
       const data = await res.json();
       if (data.success) {
         dom.formAddChargerPage.reset();
-        showToast(`🎉 Charge Point ${data.charger.name} successfully registered!`);
+        showToast(`🎉 Charge Point ${data.charger.name} successfully registered with ${data.charger.maxPowerKw || 'AC'} kW!`);
         await fetchChargers();
         selectAndOpenCockpit(data.charger.id);
       } else {
@@ -609,6 +685,7 @@ function handleWsMessage(msg) {
         chg.status = msg.status;
         chg.lastSeen = msg.lastSeen;
         if (msg.stats) chg.stats = msg.stats;
+        if (msg.sessionPendingReset !== undefined) chg.sessionPendingReset = msg.sessionPendingReset;
 
         if (!chg.history) chg.history = [];
         chg.history.push({
@@ -728,6 +805,39 @@ function updateKpis() {
   dom.kpiActiveSessions.textContent = active;
 }
 
+// AC charger helpers: AC voltage is shown as delivered energy (kWh)
+function isAcCharger(c) {
+  if (!c) return false;
+  if (c.isAc === true) return true;
+  const conn = String(c.connectorType || '').toUpperCase();
+  const name = String(c.name || '').toUpperCase();
+  const loc = String(c.location || '').toUpperCase();
+  return name.includes('AC') || loc.includes('AC') || conn.includes('AC') || conn.includes('TYPE 2') || conn.includes('TYPE 1') || conn.includes('BHARAT') || conn.includes('J1772') || conn.includes('MENNEKES') || conn.includes('230V') || conn.includes('415V');
+}
+
+function isAcSessionHeld(c) {
+  return isAcCharger(c) && (c.sessionPendingReset === true || c.status === 'CHARGED');
+}
+
+function renderVoltageCell(c) {
+  const t = c.telemetry || {};
+  const v = Number(t.charger_voltage || 0).toFixed(1);
+  const reqV = Number(t.battery_req_voltage || 0).toFixed(1);
+  return `<strong>${v} V</strong> <span style="color:var(--primary-cyan); font-size:0.75rem;">(Req: ${reqV}V)</span>`;
+}
+
+// AC chargers: show delivered energy (kWh) instead of power (kW)
+function renderPowerCell(c) {
+  const t = c.telemetry || {};
+  const pKw = Number(t.power_kw || 0);
+  if (isAcCharger(c)) {
+    const kwh = Number(t.session_energy_kwh || 0).toFixed(2);
+    const heldTag = isAcSessionHeld(c) ? ' • 🔒 Held' : '';
+    return `<strong style="color:var(--primary-cyan); font-size:1rem;">${kwh} kWh</strong> <span style="color:var(--text-muted); font-size:0.75rem;">${heldTag}</span>`;
+  }
+  return `<strong style="color:var(--primary-cyan); font-size:1rem;">${pKw.toFixed(1)} kW</strong>`;
+}
+
 function renderDashboardTable() {
   const tbody = dom.tbodyChargePoints;
   tbody.innerHTML = '';
@@ -753,12 +863,12 @@ function renderDashboardTable() {
         <small style="color:var(--text-muted);">${escapeHtml(c.location)} • ${c.connectorType}</small>
       </td>
       <td><span class="badge-status ${badgeClass}">${c.status}</span></td>
-      <td><strong>${v} V</strong> <span style="color:var(--primary-cyan); font-size:0.75rem;">(Req: ${reqV}V)</span></td>
+      <td>${renderVoltageCell(c)}</td>
       <td><strong>${a} A</strong> <span style="color:var(--primary-cyan); font-size:0.75rem;">(Req: ${reqA}A)</span></td>
       <td>
         <span class="table-soc-pill">🔋 ${soc}%</span>
       </td>
-      <td><strong style="color:var(--primary-cyan); font-size:1rem;">${pKw} kW</strong></td>
+      <td>${renderPowerCell(c)}</td>
       <td><code>${c.apiKey.substring(0, 14)}...</code></td>
       <td>
         <button class="btn-table-action" onclick="selectAndOpenCockpit('${c.id}')">Cockpit</button>
@@ -786,10 +896,10 @@ function updateDashboardTableRow(c) {
   else if (c.status === 'OFFLINE') badgeClass = 'offline';
 
   tr.children[1].innerHTML = `<span class="badge-status ${badgeClass}">${c.status}</span>`;
-  tr.children[2].innerHTML = `<strong>${v} V</strong> <span style="color:var(--primary-cyan); font-size:0.75rem;">(Req: ${reqV}V)</span>`;
+  tr.children[2].innerHTML = renderVoltageCell(c);
   tr.children[3].innerHTML = `<strong>${a} A</strong> <span style="color:var(--primary-cyan); font-size:0.75rem;">(Req: ${reqA}A)</span>`;
   tr.children[4].innerHTML = `<span class="table-soc-pill">🔋 ${soc}%</span>`;
-  tr.children[5].innerHTML = `<strong style="color:var(--primary-cyan); font-size:1rem;">${pKw} kW</strong>`;
+  tr.children[5].innerHTML = renderPowerCell(c);
 }
 
 // ==========================================================================
@@ -1126,9 +1236,15 @@ function updateCockpitTelemetry() {
   // Banner & Readout
   dom.cockpitCurrentBayTitle.textContent = charger.name;
   dom.cockpitCurrentBayLocation.textContent = `${charger.location} • ${charger.connectorType}`;
-  dom.dialPowerValue.textContent = pKw.toFixed(1);
+  const chargerIsAc = isAcCharger(charger);
+  const sessionKwh = Number(t.session_energy_kwh || 0);
+  const heldLabel = isAcSessionHeld(charger) ? ' (Held)' : '';
+  // AC chargers: headline value is delivered energy in kWh
+  dom.dialPowerValue.textContent = chargerIsAc ? sessionKwh.toFixed(2) : pKw.toFixed(1);
+  const dialUnitEl = dom.dialKwUnit || document.getElementById('dialKwUnit');
+  if (dialUnitEl) dialUnitEl.textContent = chargerIsAc ? `kWh${heldLabel}` : 'kW';
   dom.dialSecondaryMetrics.textContent = `${v.toFixed(1)} V • ${a.toFixed(1)} A`;
-  dom.dialModePillText.textContent = t.charging_mode || 'SPORT PLUS';
+  dom.dialModePillText.textContent = t.charging_mode || (chargerIsAc ? 'AC STANDARD' : 'SPORT PLUS');
   dom.dialStatusGear.textContent = charger.status;
 
   // Update Portal Charger ON / OFF Buttons Visual State
@@ -1151,11 +1267,17 @@ function updateCockpitTelemetry() {
   }
 
   // Left Panel
-  dom.cockpitLeftPowerNum.textContent = pKw.toFixed(1);
-  dom.cockpitLeftModeSub.textContent = `${t.charging_mode || 'SPORT PLUS'} // ${charger.maxVoltage}V DC BUS`;
+  dom.cockpitLeftPowerNum.textContent = chargerIsAc ? sessionKwh.toFixed(2) : pKw.toFixed(1);
+  const leftUnitEl = dom.cockpitLeftPowerUnit || document.getElementById('cockpitLeftPowerUnit');
+  if (leftUnitEl) leftUnitEl.textContent = chargerIsAc ? 'kWh' : 'kW';
+  dom.cockpitLeftModeSub.textContent = chargerIsAc
+    ? `${t.charging_mode || 'AC STANDARD'} // ${charger.maxVoltage}V AC MAINS`
+    : `${t.charging_mode || 'SPORT PLUS'} // ${charger.maxVoltage}V DC BUS`;
   dom.cockpitLeftKeyShort.textContent = `${charger.apiKey.substring(0, 16)}...`;
-  dom.cockpitSessionKwh.textContent = Number(t.session_energy_kwh || 0).toFixed(1);
-  dom.cockpitSessionTime.textContent = `${Number(t.session_duration_min || 0).toFixed(1)} min active`;
+  dom.cockpitSessionKwh.textContent = sessionKwh.toFixed(chargerIsAc ? 2 : 1);
+  dom.cockpitSessionTime.textContent = isAcSessionHeld(charger)
+    ? `${Number(t.session_duration_min || 0).toFixed(1)} min • Fully charged (held until next session)`
+    : `${Number(t.session_duration_min || 0).toFixed(1)} min active`;
 
   const radarRatio = pKw / 100;
   dom.cockpitRadarNum.textContent = `${radarRatio.toFixed(1)} P`;
@@ -1163,16 +1285,12 @@ function updateCockpitTelemetry() {
   dom.cockpitRadarBlip.style.top = `${45 + Math.cos(Date.now() / 800) * (radarRatio * 15)}%`;
 
   // Right Panel: Dual Comparison Bars (Actual vs Battery Demands)
-  const estRange = Math.round((soc / 100) * 540);
-  dom.cockpitRangeVal.textContent = soc > 0 ? `${estRange} km` : '0 km (Standby)';
-  dom.cockpitRangeBar.style.width = `${Math.max(2, soc)}%`;
-
   dom.cockpitSocVal.textContent = `${soc.toFixed(1)} %`;
   dom.cockpitSocBar.style.width = `${Math.max(2, soc)}%`;
 
   // Voltage Comparison
   const maxV = charger.maxVoltage || 800;
-  dom.cockpitActualV.textContent = `${v.toFixed(1)} V`;
+  dom.cockpitActualV.textContent = chargerIsAc ? `${sessionKwh.toFixed(2)} kWh (${v.toFixed(1)} V)` : `${v.toFixed(1)} V`;
   dom.cockpitReqV.textContent = reqV > 0 ? `Req: ${reqV.toFixed(1)} V` : 'Req: 0.0 V';
   dom.cockpitVFill.style.width = `${Math.max(2, Math.min(100, (v / maxV) * 100))}%`;
   dom.cockpitVMarker.style.left = `${Math.max(2, Math.min(100, (reqV / maxV) * 100))}%`;
@@ -1335,7 +1453,9 @@ function renderChargePointsCards() {
       </div>
 
       <div class="chg-quick-grid">
-        <div class="q-cell"><span class="q-lbl">POWER</span><span class="q-val cyan">${pKw} kW</span></div>
+        ${isAcCharger(c)
+          ? `<div class="q-cell"><span class="q-lbl">ENERGY${isAcSessionHeld(c) ? ' 🔒' : ''}</span><span class="q-val cyan">${Number(t.session_energy_kwh || 0).toFixed(2)} kWh</span></div>`
+          : `<div class="q-cell"><span class="q-lbl">POWER</span><span class="q-val cyan">${pKw} kW</span></div>`}
         <div class="q-cell"><span class="q-lbl">BATTERY SoC</span><span class="q-val">🔋 ${soc}%</span></div>
         <div class="q-cell"><span class="q-lbl">MAX V/A</span><span class="q-val">${c.maxVoltage}V / ${c.maxCurrent}A</span></div>
       </div>
@@ -1958,6 +2078,11 @@ function switchView(viewKey) {
     dom.views.viewSimulator.classList.add('active');
     dom.pageHeadingTitle.textContent = 'Hardware Simulator';
     dom.pageHeadingSubtitle.textContent = 'Simulate live PCB transmissions and sensor telemetry';
+  } else if (viewKey === 'pgTableView') {
+    dom.views.pgTableView.classList.add('active');
+    dom.pageHeadingTitle.textContent = 'PostgreSQL Tables';
+    dom.pageHeadingSubtitle.textContent = 'Direct relational tabular view of chargers and telemetry';
+    loadPgTableData();
   } else {
     dom.views.csmsDashboard.classList.add('active');
     dom.pageHeadingTitle.textContent = 'Dashboard';
@@ -2005,4 +2130,188 @@ function escapeHtml(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+// ==========================================================================
+// 12. POSTGRESQL TABULAR DATA VIEWER
+// ==========================================================================
+state.activePgTable = 'chargers';
+state.pgTableData = { chargers: { columns: [], rows: [] }, telemetry: { columns: [], rows: [] }, sessions: { columns: [], rows: [] } };
+
+function initPgTableView() {
+  const tabChargers = document.getElementById('tabPgChargers');
+  const tabTelemetry = document.getElementById('tabPgTelemetry');
+  const tabSessions = document.getElementById('tabPgSessions');
+  const btnRefresh = document.getElementById('btnPgRefresh');
+  const btnSync = document.getElementById('btnPgSyncJson');
+  const btnExport = document.getElementById('btnPgExportCsv');
+  const inputFilter = document.getElementById('inputPgFilter');
+
+  function selectTab(activeTab, tableKey) {
+    [tabChargers, tabTelemetry, tabSessions].forEach(t => t && t.classList.remove('active'));
+    if (activeTab) activeTab.classList.add('active');
+    state.activePgTable = tableKey;
+    renderPgTable();
+  }
+
+  if (tabChargers) tabChargers.onclick = () => selectTab(tabChargers, 'chargers');
+  if (tabTelemetry) tabTelemetry.onclick = () => selectTab(tabTelemetry, 'telemetry');
+  if (tabSessions) tabSessions.onclick = () => selectTab(tabSessions, 'sessions');
+
+  if (btnRefresh) {
+    btnRefresh.onclick = () => {
+      loadPgTableData();
+      showToast('Refreshing PostgreSQL tables...');
+    };
+  }
+
+  if (btnSync) {
+    btnSync.onclick = async () => {
+      try {
+        btnSync.disabled = true;
+        btnSync.textContent = 'Syncing...';
+        const res = await fetch('/api/postgres/sync', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast('✅ Synced data from JSON into PostgreSQL!');
+          loadPgTableData();
+        } else {
+          alert('Sync failed: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Sync error: ' + err.message);
+      } finally {
+        btnSync.disabled = false;
+        btnSync.textContent = '⚡ Sync from JSON';
+      }
+    };
+  }
+
+  if (btnExport) {
+    btnExport.onclick = () => exportPgTableToCsv();
+  }
+
+  if (inputFilter) {
+    inputFilter.oninput = () => renderPgTable();
+  }
+}
+
+async function loadPgTableData() {
+  const statusBadge = document.getElementById('pgServerStatusBadge');
+  try {
+    const res = await fetch('/api/postgres/table-data');
+    const data = await res.json();
+    if (data.success && data.tables) {
+      state.pgTableData = data.tables;
+      if (statusBadge) {
+        statusBadge.className = 'badge-status online';
+        statusBadge.textContent = '● PostgreSQL Online';
+      }
+      const chgCountEl = document.getElementById('pgChargersCount');
+      const telCountEl = document.getElementById('pgTelemetryCount');
+      const sessCountEl = document.getElementById('pgSessionsCount');
+      if (chgCountEl) chgCountEl.textContent = data.tables.chargers?.rows?.length || 0;
+      if (telCountEl) telCountEl.textContent = data.tables.telemetry?.rows?.length || 0;
+      if (sessCountEl) sessCountEl.textContent = data.tables.sessions?.rows?.length || 0;
+      renderPgTable();
+    } else {
+      if (statusBadge) {
+        statusBadge.className = 'badge-status offline';
+        statusBadge.textContent = '● PostgreSQL Offline';
+      }
+    }
+  } catch (err) {
+    console.error('Error fetching pg table data:', err);
+    if (statusBadge) {
+      statusBadge.className = 'badge-status offline';
+      statusBadge.textContent = '● PostgreSQL Offline';
+    }
+  }
+}
+
+function renderPgTable() {
+  const tableHead = document.getElementById('pgLiveTableHead');
+  const tableBody = document.getElementById('pgLiveTableBody');
+  const titleEl = document.getElementById('pgTableActiveTitle');
+  const subEl = document.getElementById('pgTableActiveSub');
+  const inputFilter = document.getElementById('inputPgFilter');
+  const filterVal = (inputFilter ? inputFilter.value : '').toLowerCase().trim();
+
+  if (!tableHead || !tableBody) return;
+
+  const currentTable = state.activePgTable || 'chargers';
+  const tableData = state.pgTableData ? state.pgTableData[currentTable] : null;
+
+  if (titleEl) titleEl.textContent = `${currentTable.toUpperCase()} Table`;
+  if (subEl) subEl.textContent = `Displaying ${tableData?.rows?.length || 0} live record(s) directly from PostgreSQL [Database: cms_backend]`;
+
+  if (!tableData || !tableData.columns || tableData.columns.length === 0) {
+    tableHead.innerHTML = '<tr><th>Status</th></tr>';
+    tableBody.innerHTML = '<tr><td style="text-align:center; padding:24px; color:var(--text-muted);">No records found in PostgreSQL table yet.</td></tr>';
+    return;
+  }
+
+  // Render Header
+  tableHead.innerHTML = `<tr>${tableData.columns.map(col => `<th>${escapeHtml(col.replace(/_/g, ' ').toUpperCase())}</th>`).join('')}</tr>`;
+
+  // Filter Rows
+  let rows = tableData.rows || [];
+  if (filterVal) {
+    rows = rows.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(filterVal)));
+  }
+
+  if (rows.length === 0) {
+    tableBody.innerHTML = `<tr><td colspan="${tableData.columns.length}" style="text-align:center; padding:24px; color:var(--text-muted);">No matching rows for "${escapeHtml(filterVal)}".</td></tr>`;
+    return;
+  }
+
+  tableBody.innerHTML = rows.map((row, idx) => {
+    return `<tr>${tableData.columns.map(col => {
+      let val = row[col];
+      if (val === null || val === undefined) val = '<span style="color:var(--text-muted); font-style:italic;">NULL</span>';
+      else if (col === 'is_ac') {
+        val = val ? '<span class="badge-status online">AC CHARGER</span>' : '<span class="badge-status charging">DC FAST</span>';
+      } else if (col.includes('time') || col.includes('_at')) {
+        try { val = new Date(val).toLocaleString(); } catch (e) {}
+      } else if (col === 'status') {
+        const cls = String(val).toUpperCase() === 'CHARGING' ? 'charging' : String(val).toUpperCase() === 'CHARGED' ? 'online' : String(val).toUpperCase() === 'ONLINE' ? 'online' : 'offline';
+        val = `<span class="badge-status ${cls}">${escapeHtml(String(val))}</span>`;
+      } else if (col.includes('revenue') || col.includes('fee')) {
+        val = `<strong style="color:#10b981;">₹${Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>`;
+      } else if (col.includes('kwh') || col.includes('power_kw')) {
+        val = `<strong>${Number(val).toFixed(2)}</strong> <small style="color:var(--text-muted);">${col.includes('power') ? 'kW' : 'kWh'}</small>`;
+      } else {
+        val = escapeHtml(String(val));
+      }
+      return `<td>${val}</td>`;
+    }).join('')}</tr>`;
+  }).join('');
+}
+
+function exportPgTableToCsv() {
+  const currentTable = state.activePgTable || 'chargers';
+  const tableData = state.pgTableData ? state.pgTableData[currentTable] : null;
+  if (!tableData || !tableData.rows || tableData.rows.length === 0) {
+    alert('No data to export.');
+    return;
+  }
+  const headers = tableData.columns;
+  const csvRows = [headers.join(',')];
+  tableData.rows.forEach(row => {
+    const values = headers.map(header => {
+      const escaped = ('' + (row[header] ?? '')).replace(/"/g, '""');
+      return `"${escaped}"`;
+    });
+    csvRows.push(values.join(','));
+  });
+  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', `${currentTable}_export_${new Date().toISOString().slice(0, 10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  showToast(`Exported ${tableData.rows.length} rows to CSV.`);
+}
+
 document.addEventListener('DOMContentLoaded', initApp);
+

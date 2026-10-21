@@ -34,7 +34,8 @@ module.exports = function(broadcast) {
       telemetry: charger.telemetry,
       status: charger.status,
       lastSeen: charger.lastSeen,
-      stats: charger.stats
+      stats: charger.stats,
+      sessionPendingReset: charger.sessionPendingReset === true
     });
 
     // Also persist to PostgreSQL
