@@ -546,17 +546,28 @@ class Database {
     const prev = charger.telemetry || {};
     const isAc = charger.isAc === true || this.isAcConnector(charger.connectorType);
 
-    const v = payload.charger_voltage !== undefined ? Number(payload.charger_voltage) : (payload.voltage !== undefined ? Number(payload.voltage) : (prev.charger_voltage || (isAc ? 230.0 : 418.5)));
-    const a = payload.charger_current !== undefined ? Number(payload.charger_current) : (payload.current !== undefined ? Number(payload.current) : (prev.charger_current || (isAc ? 32.0 : 148.2)));
-    const payloadSoc = payload.battery_soc !== undefined ? payload.battery_soc : payload.soc;
-    const rawSoc = payloadSoc !== undefined ? payloadSoc : prev.battery_soc;
-    let soc = rawSoc !== undefined ? Number(rawSoc) : 78.0;
-    const reqV = payload.battery_req_voltage !== undefined ? Number(payload.battery_req_voltage) : (prev.battery_req_voltage || (isAc ? 230.0 : 425.0));
-    const reqA = payload.battery_req_current !== undefined ? Number(payload.battery_req_current) : (prev.battery_req_current || (isAc ? 32.0 : 160.0));
+    // Ultra-flexible field mapping for Postman / Hardware PCB payloads
+    const rawV = payload.charger_voltage ?? payload.voltage ?? payload.v ?? payload.V ?? payload.output_voltage ?? payload.chargerVoltage;
+    const v = rawV !== undefined && rawV !== null && !isNaN(Number(rawV)) ? Number(rawV) : (prev.charger_voltage || (isAc ? 230.0 : 418.5));
+
+    const rawA = payload.charger_current ?? payload.current ?? payload.a ?? payload.A ?? payload.i ?? payload.I ?? payload.output_current ?? payload.chargerCurrent;
+    const a = rawA !== undefined && rawA !== null && !isNaN(Number(rawA)) ? Number(rawA) : (prev.charger_current || (isAc ? 32.0 : 148.2));
+
+    const payloadSoc = payload.battery_soc ?? payload.soc ?? payload.SoC ?? payload.SOC ?? payload.battery_percentage ?? payload.percentage ?? payload.batterySoc;
+    const rawSoc = payloadSoc !== undefined && payloadSoc !== null && !isNaN(Number(payloadSoc)) ? payloadSoc : prev.battery_soc;
+    let soc = rawSoc !== undefined && rawSoc !== null && !isNaN(Number(rawSoc)) ? Number(rawSoc) : 78.0;
+
+    const rawReqV = payload.battery_req_voltage ?? payload.req_voltage ?? payload.battery_voltage_req ?? payload.reqV ?? payload.target_voltage;
+    const reqV = rawReqV !== undefined && rawReqV !== null && !isNaN(Number(rawReqV)) ? Number(rawReqV) : (prev.battery_req_voltage || (isAc ? 230.0 : 425.0));
+
+    const rawReqA = payload.battery_req_current ?? payload.req_current ?? payload.battery_current_req ?? payload.reqA ?? payload.target_current;
+    const reqA = rawReqA !== undefined && rawReqA !== null && !isNaN(Number(rawReqA)) ? Number(rawReqA) : (prev.battery_req_current || (isAc ? 32.0 : 160.0));
+
+    const rawEnergy = payload.session_energy_kwh ?? payload.energy_kwh ?? payload.kwh ?? payload.kWh ?? payload.energy ?? payload.sessionKwh;
 
     // Automatically calculate power in kW for AC or DC
-    const pKw = payload.power_kw !== undefined ? Number(payload.power_kw) : this.calculatePowerKw(v, a, isAc, charger.connectorType);
-    const targetPKw = payload.target_power_kw !== undefined ? Number(payload.target_power_kw) : this.calculatePowerKw(reqV, reqA, isAc, charger.connectorType);
+    const pKw = payload.power_kw !== undefined && !isNaN(Number(payload.power_kw)) ? Number(payload.power_kw) : this.calculatePowerKw(v, a, isAc, charger.connectorType);
+    const targetPKw = payload.target_power_kw !== undefined && !isNaN(Number(payload.target_power_kw)) ? Number(payload.target_power_kw) : this.calculatePowerKw(reqV, reqA, isAc, charger.connectorType);
 
     let currentEnergy = prev.session_energy_kwh || 0.0;
     let duration = prev.session_duration_min || 0.0;
@@ -597,8 +608,8 @@ class Database {
       // HELD: keep the last delivered kWh & duration constant until next session
       currentEnergy = Number(prev.session_energy_kwh) || 0.0;
       duration = Number(prev.session_duration_min) || 0.0;
-    } else if (payload.session_energy_kwh !== undefined) {
-      currentEnergy = Number(payload.session_energy_kwh);
+    } else if (rawEnergy !== undefined && rawEnergy !== null && !isNaN(Number(rawEnergy))) {
+      currentEnergy = Number(rawEnergy);
     } else if (charger.lastSeen && v > 10 && a > 0.5) {
       // Convert live charging voltage & current into delivered energy (kWh)
       const elapsedHours = (now - charger.lastSeen) / (1000 * 3600);

@@ -7,7 +7,10 @@
 // Dynamic backend configuration:
 // If running on localhost or 127.0.0.1, use relative paths.
 // If running on Vercel or any remote static host, route to Render backend.
-const IS_LOCAL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const IS_LOCAL = window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1' ||
+  window.location.hostname === '' ||
+  window.location.port !== '';
 const BACKEND_ORIGIN = IS_LOCAL ? '' : 'https://cms-backend-0bce.onrender.com';
 const WS_BACKEND_URL = IS_LOCAL
   ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`
@@ -679,33 +682,36 @@ function handleWsMessage(msg) {
       break;
 
     case 'TELEMETRY_UPDATE':
-      const chg = state.chargers.find(c => c.id === msg.chargerId);
-      if (chg) {
-        chg.telemetry = msg.telemetry;
-        chg.status = msg.status;
-        chg.lastSeen = msg.lastSeen;
-        if (msg.stats) chg.stats = msg.stats;
-        if (msg.sessionPendingReset !== undefined) chg.sessionPendingReset = msg.sessionPendingReset;
-
-        if (!chg.history) chg.history = [];
-        chg.history.push({
-          timestamp: msg.telemetry.timestamp || Date.now(),
-          charger_voltage: msg.telemetry.charger_voltage,
-          charger_current: msg.telemetry.charger_current,
-          battery_soc: msg.telemetry.battery_soc,
-          battery_req_voltage: msg.telemetry.battery_req_voltage,
-          battery_req_current: msg.telemetry.battery_req_current,
-          power_kw: msg.telemetry.power_kw
-        });
-        if (chg.history.length > 50) chg.history.shift();
-
-        updateDashboardTableRow(chg);
-        renderChargePointsCards();
-        updateKpis();
-        if (state.selectedChargerId === msg.chargerId) {
-          updateCockpitTelemetry();
-        }
+      let chg = state.chargers.find(c => c.id === msg.chargerId);
+      if (!chg) {
+        fetchChargers();
+        return;
       }
+      chg.telemetry = msg.telemetry;
+      chg.status = msg.status;
+      chg.lastSeen = msg.lastSeen;
+      if (msg.stats) chg.stats = msg.stats;
+      if (msg.sessionPendingReset !== undefined) chg.sessionPendingReset = msg.sessionPendingReset;
+
+      if (!chg.history) chg.history = [];
+      chg.history.push({
+        timestamp: msg.telemetry.timestamp || Date.now(),
+        charger_voltage: msg.telemetry.charger_voltage,
+        charger_current: msg.telemetry.charger_current,
+        battery_soc: msg.telemetry.battery_soc,
+        battery_req_voltage: msg.telemetry.battery_req_voltage,
+        battery_req_current: msg.telemetry.battery_req_current,
+        power_kw: msg.telemetry.power_kw
+      });
+      if (chg.history.length > 50) chg.history.shift();
+
+      updateDashboardTableRow(chg);
+      renderChargePointsCards();
+      updateKpis();
+      if (state.selectedChargerId === msg.chargerId) {
+        updateCockpitTelemetry();
+      }
+      showToast(`⚡ Ingested: ${chg.name} (${msg.telemetry.charger_voltage}V, ${msg.telemetry.charger_current}A, ${msg.telemetry.battery_soc}% SoC)`);
       break;
 
     case 'CHARGER_ADDED':
@@ -882,7 +888,10 @@ function renderDashboardTable() {
 
 function updateDashboardTableRow(c) {
   const tr = document.getElementById(`row_${c.id}`);
-  if (!tr) return;
+  if (!tr) {
+    renderDashboardTable();
+    return;
+  }
   const t = c.telemetry || {};
   const v = Number(t.charger_voltage || 0).toFixed(1);
   const a = Number(t.charger_current || 0).toFixed(1);

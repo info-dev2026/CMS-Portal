@@ -85,25 +85,35 @@
     "maxCurrent": 32,
     "maxPowerKw": 23,
     "connectorType": "Type 2 AC (22 kW Three-Phase 415V / 32A)",
-    "status": "ONLINE",
-    "lastSeen": 1792561872859,
+    "status": "CHARGING",
+    "lastSeen": 1792562482119,
     "telemetry": {
-      "charger_voltage": 415,
-      "charger_current": 0,
-      "battery_soc": 0,
+      "charger_voltage": 230,
+      "charger_current": 32,
+      "battery_soc": 55,
       "battery_req_voltage": 415,
       "battery_req_current": 32,
       "battery_temp": 25,
       "charger_temp": 25,
-      "status": "ONLINE",
-      "charging_mode": "STANDBY // READY",
+      "status": "CHARGING",
+      "charging_mode": "AC SMART // LEVEL 2",
       "fault_code": "NONE",
-      "session_energy_kwh": 0,
-      "session_duration_min": 0,
-      "power_kw": 0,
+      "session_energy_kwh": 0.952,
+      "session_duration_min": 4.5,
+      "power_kw": 12.75,
       "target_power_kw": 23,
-      "timestamp": 1792561872859
+      "timestamp": 1792562482119
     },
-    "history": []
+    "history": [
+      {
+        "timestamp": 1792562482119,
+        "charger_voltage": 230,
+        "charger_current": 32,
+        "battery_soc": 55,
+        "battery_req_voltage": 415,
+        "battery_req_current": 32,
+        "power_kw": 12.75
+      }
+    ]
   }
 ]

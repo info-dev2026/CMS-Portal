@@ -5,22 +5,36 @@ const { recordTelemetryToPg } = require('./postgresRoutes');
 
 module.exports = function(broadcast) {
   router.post('/', (req, res) => {
+    let body = req.body;
+    if (typeof body === 'string') {
+      try { body = JSON.parse(body); } catch (e) { body = {}; }
+    }
+    body = body || {};
+
     const rawKey = req.headers['x-api-key'] ||
+      req.headers['api-key'] ||
+      req.headers['apikey'] ||
       req.query['x-api-key'] ||
+      req.query['api-key'] ||
       req.query.apiKey ||
+      req.query.api_key ||
+      req.query.key ||
       (req.headers['authorization'] ? req.headers['authorization'].replace(/^Bearer\s+/i, '') : null) ||
-      (req.body && req.body.apiKey);
+      body.apiKey ||
+      body.api_key ||
+      body.key ||
+      body['x-api-key'];
 
     const apiKey = rawKey ? String(rawKey).trim() : null;
 
     if (!apiKey) {
       return res.status(401).json({
         success: false,
-        error: 'Missing API key. Please provide x-api-key header or ?x-api-key= query param.'
+        error: 'Missing API key. Please provide x-api-key header, query param (?x-api-key=...), or apiKey in body.'
       });
     }
 
-    const charger = db.recordTelemetry(apiKey, req.body);
+    const charger = db.recordTelemetry(apiKey, body);
     if (!charger) {
       return res.status(403).json({
         success: false,
