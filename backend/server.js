@@ -45,6 +45,7 @@ app.use('/api/chargers', require('./routes/chargerRoutes')(broadcast));
 app.use('/api/telemetry', require('./routes/telemetryRoutes')(broadcast));
 app.use('/api/tariffs', require('./routes/tariffRoutes')(broadcast));
 app.use('/api/tokens', require('./routes/tokenRoutes')(broadcast));
+app.use('/api/reports', require('./routes/reportRoutes'));
 
 // Network stats endpoint matching CSMS overview screenshot
 app.get('/api/network/stats', (req, res) => {
