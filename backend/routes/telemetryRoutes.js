@@ -114,11 +114,15 @@ module.exports = function(broadcast) {
     // Also persist to PostgreSQL
     recordTelemetryToPg(charger, charger.telemetry).catch(e => console.error('PG write error:', e.message));
 
+    // Deliver pending hardware commands (e.g. AUTHENTICATE_BATTERY_CONNECT, START_CHARGING, STOP)
+    const pendingCommands = db.getPendingCommands(charger.id);
+
     return res.status(200).json({
       success: true,
       message: 'Telemetry ingested successfully.',
       chargerId: charger.id,
       chargerName: charger.name,
+      batteryConnected: charger.batteryConnected !== false,
       power_kw: charger.telemetry.power_kw,
       battery_soc: charger.telemetry.battery_soc,
       charger_voltage: charger.telemetry.charger_voltage,
@@ -126,9 +130,26 @@ module.exports = function(broadcast) {
       session_energy_kwh: charger.telemetry.session_energy_kwh,
       timestamp: charger.telemetry.timestamp,
       lastSeen: charger.lastSeen,
-      receivedAt: new Date(charger.lastSeen).toISOString()
+      receivedAt: new Date(charger.lastSeen).toISOString(),
+      pendingCommands: pendingCommands
     });
   };
+
+  // Hardware PCB commands query endpoint (?apiKey=...)
+  router.get('/commands', (req, res) => {
+    const rawKey = req.headers['x-api-key'] || req.query.apiKey || req.query.key || req.query.chargerId;
+    const charger = db.getChargerByApiKey(rawKey);
+    if (!charger) {
+      return res.status(404).json({ success: false, error: 'Charger not found for given key' });
+    }
+    const commands = db.getPendingCommands(charger.id);
+    res.json({
+      success: true,
+      chargerId: charger.id,
+      batteryConnected: charger.batteryConnected !== false,
+      commands
+    });
+  });
 
   // Mount on root and multiple sub-paths to avoid Postman 404s
   router.get(['/', '/data', '/ingest', '/record'], handleGetInfo);

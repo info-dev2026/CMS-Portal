@@ -83,7 +83,7 @@ module.exports = function(broadcast) {
 
   // Portal Remote Control (Turn Charger ON / OFF directly through portal)
   router.post('/:id/control', (req, res) => {
-    const { action } = req.body; // 'ON', 'OFF', 'START', 'STOP'
+    const { action, batteryConnected } = req.body; // 'ON', 'OFF', 'START', 'STOP'
     const chargerId = req.params.id;
     const charger = db.getChargerById(chargerId);
 
@@ -93,15 +93,71 @@ module.exports = function(broadcast) {
 
     const isTurnOn = action === 'ON' || action === 'START';
 
-    // Update charger operational state and live telemetry
-    charger.status = isTurnOn ? 'CHARGING' : 'ONLINE';
-    charger.lastSeen = Date.now();
-
-    if (!charger.telemetry) charger.telemetry = {};
-
-    const isAc = charger.isAc === true || db.isAcConnector(charger.connectorType);
+    // Allow explicit override if passed in request (e.g. from simulator or test suite)
+    if (batteryConnected !== undefined) {
+      charger.batteryConnected = Boolean(batteryConnected);
+    }
 
     if (isTurnOn) {
+      // 1. Send command to PCB Hardware to authenticate battery connection
+      const command = db.queueCommand(chargerId, 'AUTHENTICATE_BATTERY_CONNECT', {
+        action: 'START_CHARGING',
+        requestedAt: Date.now()
+      });
+
+      // 2. Authenticate whether battery is connected with the hardware
+      // Criteria:
+      // - Explicit charger.batteryConnected must not be false
+      // - Telemetry battery_connected must not be false
+      const isConnected = charger.batteryConnected !== false &&
+        (charger.telemetry ? charger.telemetry.battery_connected !== false : true);
+
+      if (!isConnected) {
+        // Battery is NOT connected! Do NOT start charging!
+        charger.status = 'ONLINE';
+        if (!charger.telemetry) charger.telemetry = {};
+        charger.telemetry.status = 'ONLINE';
+        charger.telemetry.power_kw = 0.0;
+        charger.telemetry.charger_current = 0.0;
+        charger.telemetry.charging_mode = 'STANDBY // NO BATTERY';
+        charger.telemetry.battery_connected = false;
+        charger.lastSeen = Date.now();
+        db.saveChargers();
+
+        broadcast({
+          type: 'CHARGER_UPDATED',
+          charger
+        });
+        broadcast({
+          type: 'TELEMETRY_UPDATE',
+          chargerId: charger.id,
+          telemetry: charger.telemetry,
+          status: charger.status
+        });
+
+        return res.status(200).json({
+          success: false,
+          batteryConnected: false,
+          authenticated: false,
+          commandSent: command,
+          title: "Battery Not Connected",
+          message: "The battery isn't connected with the charger. Please connect the battery.",
+          error: "The battery isn't connected with the charger. Please connect the battery.",
+          status: charger.status,
+          charger
+        });
+      }
+
+      // Battery IS connected! Proceed with beginning charging session
+      charger.batteryConnected = true;
+      charger.status = 'CHARGING';
+      charger.lastSeen = Date.now();
+
+      if (!charger.telemetry) charger.telemetry = {};
+      charger.telemetry.battery_connected = true;
+
+      const isAc = charger.isAc === true || db.isAcConnector(charger.connectorType);
+
       // Starting a new session after a held (fully charged) AC session -> restart kWh from 0
       if (isAc && charger.sessionPendingReset) {
         charger.telemetry.session_energy_kwh = 0.0;
@@ -128,15 +184,73 @@ module.exports = function(broadcast) {
         charger.telemetry.power_kw = Number((v * a / 1000).toFixed(1));
         charger.telemetry.charging_mode = 'SPORT PLUS // CC FAST';
       }
+
+      charger.telemetry.timestamp = Date.now();
+      db.saveChargers();
+
+      broadcast({
+        type: 'CHARGER_UPDATED',
+        charger
+      });
+
+      broadcast({
+        type: 'TELEMETRY_UPDATE',
+        chargerId: charger.id,
+        telemetry: charger.telemetry,
+        status: charger.status,
+        sessionPendingReset: charger.sessionPendingReset === true
+      });
+
+      return res.status(200).json({
+        success: true,
+        batteryConnected: true,
+        authenticated: true,
+        commandSent: command,
+        message: 'Charging begin.',
+        status: charger.status,
+        charger
+      });
     } else {
+      // Turn OFF
+      charger.status = 'ONLINE';
+      charger.lastSeen = Date.now();
+      if (!charger.telemetry) charger.telemetry = {};
       charger.telemetry.status = 'ONLINE';
       charger.telemetry.power_kw = 0.0;
       charger.telemetry.charger_current = 0.0;
       charger.telemetry.charging_mode = 'STANDBY // READY';
-    }
+      charger.telemetry.timestamp = Date.now();
+      db.saveChargers();
 
-    charger.telemetry.timestamp = Date.now();
-    db.saveChargers();
+      broadcast({
+        type: 'CHARGER_UPDATED',
+        charger
+      });
+
+      broadcast({
+        type: 'TELEMETRY_UPDATE',
+        chargerId: charger.id,
+        telemetry: charger.telemetry,
+        status: charger.status,
+        sessionPendingReset: charger.sessionPendingReset === true
+      });
+
+      return res.json({
+        success: true,
+        message: 'Charger turned OFF successfully.',
+        status: charger.status,
+        charger
+      });
+    }
+  });
+
+  // Toggle or update battery connection state (for testing / hardware simulator)
+  router.post('/:id/battery-status', (req, res) => {
+    const { connected } = req.body;
+    const charger = db.setBatteryConnected(req.params.id, connected);
+    if (!charger) {
+      return res.status(404).json({ success: false, error: 'Charger not found' });
+    }
 
     broadcast({
       type: 'CHARGER_UPDATED',
@@ -147,16 +261,23 @@ module.exports = function(broadcast) {
       type: 'TELEMETRY_UPDATE',
       chargerId: charger.id,
       telemetry: charger.telemetry,
-      status: charger.status,
-      sessionPendingReset: charger.sessionPendingReset === true
+      status: charger.status
     });
 
     res.json({
       success: true,
-      message: `Charger turned ${isTurnOn ? 'ON' : 'OFF'} successfully.`,
-      status: charger.status,
+      batteryConnected: charger.batteryConnected,
+      message: `Battery status updated to ${charger.batteryConnected ? 'CONNECTED' : 'DISCONNECTED'}.`,
       charger
     });
+  });
+
+  // Query pending commands for this charger (for PCB polling)
+  router.get('/:id/commands', (req, res) => {
+    const charger = db.getChargerById(req.params.id);
+    if (!charger) return res.status(404).json({ success: false, error: 'Charger not found' });
+    const commands = db.getPendingCommands(charger.id);
+    res.json({ success: true, chargerId: charger.id, commands });
   });
 
   // Regenerate key

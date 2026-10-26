@@ -267,6 +267,25 @@ const dom = {
   btnChargerPowerOn: document.getElementById('btnChargerPowerOn'),
   btnChargerPowerOff: document.getElementById('btnChargerPowerOff'),
 
+  // PCB Battery Authentication & Modals
+  modalAuthenticatingPcb: document.getElementById('modalAuthenticatingPcb'),
+  modalChargingBegin: document.getElementById('modalChargingBegin'),
+  modalBatteryNotConnected: document.getElementById('modalBatteryNotConnected'),
+  btnCloseChargingBeginModal: document.getElementById('btnCloseChargingBeginModal'),
+  btnOkChargingBegin: document.getElementById('btnOkChargingBegin'),
+  btnCloseBatteryNotConnectedModal: document.getElementById('btnCloseBatteryNotConnectedModal'),
+  btnDismissBatteryModal: document.getElementById('btnDismissBatteryModal'),
+  btnQuickConnectBattery: document.getElementById('btnQuickConnectBattery'),
+  popupBeginChargerName: document.getElementById('popupBeginChargerName'),
+  popupNotConnectedChargerName: document.getElementById('popupNotConnectedChargerName'),
+  cockpitBatteryHwBar: document.getElementById('cockpitBatteryHwBar'),
+  cockpitBattConnDot: document.getElementById('cockpitBattConnDot'),
+  cockpitBattConnText: document.getElementById('cockpitBattConnText'),
+  btnToggleCockpitBattConn: document.getElementById('btnToggleCockpitBattConn'),
+  simPresetNoBattery: document.getElementById('simPresetNoBattery'),
+  btnSimBattConnected: document.getElementById('btnSimBattConnected'),
+  btnSimBattDisconnected: document.getElementById('btnSimBattDisconnected'),
+
   // Charge Points Cards
   chargePointsCardsContainer: document.getElementById('chargePointsCardsContainer'),
   btnOpenAddPageFromPoints: document.getElementById('btnOpenAddPageFromPoints'),
@@ -1343,33 +1362,149 @@ window.executeDelete = async (id) => {
 // PORTAL CHARGER REMOTE CONTROL (Turn Charger ON / OFF)
 // ==========================================================================
 
+// ==========================================================================
+// PORTAL CHARGER REMOTE CONTROL (Turn Charger ON / OFF with PCB Battery Auth)
+// ==========================================================================
+
 window.controlCharger = async (id, action) => {
   if (!id) id = state.selectedChargerId;
   if (!id) return;
 
+  const chg = state.chargers.find(c => c.id === id);
+  const chargerName = chg ? chg.name : 'Charge Point';
+  const isTurnOn = action === 'ON' || action === 'START';
+
+  if (isTurnOn) {
+    // 1. Show authenticating modal indicator to signify sending command to PCB
+    if (dom.modalAuthenticatingPcb) {
+      dom.modalAuthenticatingPcb.classList.add('active');
+    }
+
+    try {
+      // Intentional short delay (550ms) to reflect real network transmission to hardware
+      const [res] = await Promise.all([
+        fetch(`/api/chargers/${id}/control`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'ON' })
+        }),
+        new Promise(resolve => setTimeout(resolve, 550))
+      ]);
+
+      if (dom.modalAuthenticatingPcb) {
+        dom.modalAuthenticatingPcb.classList.remove('active');
+      }
+
+      const data = await res.json();
+
+      if (data.batteryConnected === true || (data.success && data.batteryConnected !== false)) {
+        // --- CASE 1: BATTERY IS CONNECTED ---
+        // Update local charger state
+        if (chg) {
+          chg.status = data.status || 'CHARGING';
+          chg.batteryConnected = true;
+          if (data.charger && data.charger.telemetry) {
+            chg.telemetry = data.charger.telemetry;
+          }
+        }
+
+        updateCockpitTelemetry();
+        renderDashboardTable();
+        renderChargePointsCards();
+        updateKpis();
+
+        // Display POPUP: Charging begin
+        if (dom.popupBeginChargerName) dom.popupBeginChargerName.textContent = chargerName;
+        if (dom.modalChargingBegin) dom.modalChargingBegin.classList.add('active');
+
+        showToast('⚡ Charging begin.');
+      } else {
+        // --- CASE 2: BATTERY IS NOT CONNECTED ---
+        if (chg) {
+          chg.status = data.status || 'ONLINE';
+          chg.batteryConnected = false;
+          if (chg.telemetry) {
+            chg.telemetry.power_kw = 0.0;
+            chg.telemetry.charger_current = 0.0;
+            chg.telemetry.battery_connected = false;
+          }
+        }
+
+        updateCockpitTelemetry();
+        renderDashboardTable();
+        renderChargePointsCards();
+        updateKpis();
+
+        // Display POPUP: The battery isn't connected with the charger. Please connect the battery.
+        if (dom.popupNotConnectedChargerName) dom.popupNotConnectedChargerName.textContent = chargerName;
+        if (dom.modalBatteryNotConnected) dom.modalBatteryNotConnected.classList.add('active');
+
+        showToast("⚠️ The battery isn't connected with the charger. Please connect the battery.", 'error');
+      }
+    } catch (e) {
+      if (dom.modalAuthenticatingPcb) dom.modalAuthenticatingPcb.classList.remove('active');
+      showToast(`Network error communicating with PCB: ${e.message}`, 'error');
+    }
+  } else {
+    // Turn OFF
+    try {
+      const res = await fetch(`/api/chargers/${id}/control`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'OFF' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (chg) {
+          chg.status = data.status || 'ONLINE';
+          if (data.charger && data.charger.telemetry) {
+            chg.telemetry = data.charger.telemetry;
+          }
+        }
+        updateCockpitTelemetry();
+        renderDashboardTable();
+        renderChargePointsCards();
+        updateKpis();
+        showToast('⏹ Charger turned OFF (Standby ready)');
+      }
+    } catch (e) {
+      showToast(`Network error: ${e.message}`, 'error');
+    }
+  }
+};
+
+window.toggleBatteryHardwareConnection = async (chargerId) => {
+  if (!chargerId) chargerId = state.selectedChargerId;
+  const charger = state.chargers.find(c => c.id === chargerId);
+  if (!charger) return;
+  const currentConn = charger.batteryConnected !== false && (charger.telemetry?.battery_connected !== false);
+  const newConn = !currentConn;
   try {
-    const res = await fetch(`/api/chargers/${id}/control`, {
+    const res = await fetch(`/api/chargers/${chargerId}/battery-status`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action })
+      body: JSON.stringify({ connected: newConn })
     });
     const data = await res.json();
     if (data.success) {
-      const chg = state.chargers.find(c => c.id === id);
-      if (chg) {
-        chg.status = data.status;
-        chg.telemetry = data.charger.telemetry;
+      charger.batteryConnected = newConn;
+      if (!charger.telemetry) charger.telemetry = {};
+      charger.telemetry.battery_connected = newConn;
+      if (!newConn && charger.status === 'CHARGING') {
+        charger.status = 'ONLINE';
+        charger.telemetry.status = 'ONLINE';
+        charger.telemetry.power_kw = 0.0;
+        charger.telemetry.charger_current = 0.0;
+        charger.telemetry.charging_mode = 'STANDBY // NO BATTERY';
       }
       updateCockpitTelemetry();
       renderDashboardTable();
       renderChargePointsCards();
       updateKpis();
-      showToast(`⚡ Charger ${action === 'ON' ? 'turned ON (Charging active)' : 'turned OFF (Stopped)'}`);
-    } else {
-      showToast(`Control Error: ${data.error}`, 'error');
+      showToast(newConn ? '🟢 Battery marked as CONNECTED (BMS link OK)' : '🔴 Battery marked as DISCONNECTED (0V Open Interlock)');
     }
   } catch (e) {
-    showToast(`Network error: ${e.message}`, 'error');
+    showToast(`Error: ${e.message}`, 'error');
   }
 };
 
@@ -1485,6 +1620,20 @@ function updateCockpitTelemetry() {
   if (dom.btnChargerPowerOff) {
     if (!isCharging) dom.btnChargerPowerOff.classList.add('active');
     else dom.btnChargerPowerOff.classList.remove('active');
+  }
+
+  // Update Battery Hardware Connection Status Bar in Cockpit
+  const isBattConnected = charger.batteryConnected !== false && (t.battery_connected !== false);
+  if (dom.cockpitBatteryHwBar) {
+    if (isBattConnected) {
+      dom.cockpitBatteryHwBar.classList.remove('disconnected');
+      if (dom.cockpitBattConnText) dom.cockpitBattConnText.textContent = 'BATTERY HARDWARE: CONNECTED (BMS LINK OK)';
+      if (dom.btnToggleCockpitBattConn) dom.btnToggleCockpitBattConn.textContent = 'Simulate Disconnect';
+    } else {
+      dom.cockpitBatteryHwBar.classList.add('disconnected');
+      if (dom.cockpitBattConnText) dom.cockpitBattConnText.textContent = 'BATTERY HARDWARE: DISCONNECTED (NO EV DETECTED)';
+      if (dom.btnToggleCockpitBattConn) dom.btnToggleCockpitBattConn.textContent = 'Simulate Connect';
+    }
   }
 
   // Arc Gauge Animation (Scale 0 to 400 kW matching ticks)
@@ -1882,6 +2031,47 @@ function initModals() {
       alert('Error: ' + err.message);
     }
   };
+
+  // PCB Battery Authentication Modals
+  if (dom.btnCloseChargingBeginModal) {
+    dom.btnCloseChargingBeginModal.onclick = () => dom.modalChargingBegin?.classList.remove('active');
+  }
+  if (dom.btnOkChargingBegin) {
+    dom.btnOkChargingBegin.onclick = () => {
+      dom.modalChargingBegin?.classList.remove('active');
+      switchView('cockpitView');
+    };
+  }
+
+  if (dom.btnCloseBatteryNotConnectedModal) {
+    dom.btnCloseBatteryNotConnectedModal.onclick = () => dom.modalBatteryNotConnected?.classList.remove('active');
+  }
+  if (dom.btnDismissBatteryModal) {
+    dom.btnDismissBatteryModal.onclick = () => dom.modalBatteryNotConnected?.classList.remove('active');
+  }
+  if (dom.btnQuickConnectBattery) {
+    dom.btnQuickConnectBattery.onclick = async () => {
+      dom.modalBatteryNotConnected?.classList.remove('active');
+      const chargerId = state.selectedChargerId;
+      if (!chargerId) return;
+      try {
+        await fetch(`/api/chargers/${chargerId}/battery-status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ connected: true })
+        });
+        const chg = state.chargers.find(c => c.id === chargerId);
+        if (chg) {
+          chg.batteryConnected = true;
+          if (chg.telemetry) chg.telemetry.battery_connected = true;
+        }
+        showToast('🔌 Battery connected to charger hardware. Starting charging...');
+        setTimeout(() => controlCharger(chargerId, 'ON'), 300);
+      } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+      }
+    };
+  }
 
   // Initialize Report Modal handlers
   initReportModal();
@@ -2313,10 +2503,59 @@ function initSimulator() {
     else stopSimAutoStream();
   };
 
-  document.getElementById('simPresetFast').onclick = () => setSimVals(420.0, 155.0, 78.0, 428.0, 165.0, 34.0);
-  document.getElementById('simPreset400V').onclick = () => setSimVals(385.0, 95.0, 48.0, 400.0, 110.0, 30.5);
-  document.getElementById('simPresetTaper').onclick = () => setSimVals(438.0, 32.0, 88.0, 440.0, 35.0, 36.0);
-  document.getElementById('simPresetFault').onclick = () => setSimVals(0.0, 0.0, 50.0, 0.0, 0.0, 62.0);
+  state.simBatteryConnected = true;
+
+  const updateSimBattButtons = () => {
+    if (dom.btnSimBattConnected) {
+      if (state.simBatteryConnected) dom.btnSimBattConnected.classList.add('active', 'connected');
+      else dom.btnSimBattConnected.classList.remove('active', 'connected');
+    }
+    if (dom.btnSimBattDisconnected) {
+      if (!state.simBatteryConnected) dom.btnSimBattDisconnected.classList.add('active', 'disconnected');
+      else dom.btnSimBattDisconnected.classList.remove('active', 'disconnected');
+    }
+  };
+
+  document.getElementById('simPresetFast').onclick = () => {
+    state.simBatteryConnected = true;
+    updateSimBattButtons();
+    setSimVals(420.0, 155.0, 78.0, 428.0, 165.0, 34.0);
+  };
+  document.getElementById('simPreset400V').onclick = () => {
+    state.simBatteryConnected = true;
+    updateSimBattButtons();
+    setSimVals(385.0, 95.0, 48.0, 400.0, 110.0, 30.5);
+  };
+  document.getElementById('simPresetTaper').onclick = () => {
+    state.simBatteryConnected = true;
+    updateSimBattButtons();
+    setSimVals(438.0, 32.0, 88.0, 440.0, 35.0, 36.0);
+  };
+  document.getElementById('simPresetFault').onclick = () => {
+    setSimVals(0.0, 0.0, 50.0, 0.0, 0.0, 62.0);
+  };
+  if (dom.simPresetNoBattery) {
+    dom.simPresetNoBattery.onclick = () => {
+      state.simBatteryConnected = false;
+      updateSimBattButtons();
+      setSimVals(0.0, 0.0, 0.0, 0.0, 0.0, 24.0);
+    };
+  }
+
+  if (dom.btnSimBattConnected) {
+    dom.btnSimBattConnected.onclick = () => {
+      state.simBatteryConnected = true;
+      updateSimBattButtons();
+      sendSimPacket();
+    };
+  }
+  if (dom.btnSimBattDisconnected) {
+    dom.btnSimBattDisconnected.onclick = () => {
+      state.simBatteryConnected = false;
+      updateSimBattButtons();
+      setSimVals(0.0, 0.0, 0.0, 0.0, 0.0, 24.0);
+    };
+  }
 
   dom.btnSimClearLogs.onclick = () => dom.simLogConsole.innerHTML = '';
   dom.btnCopyPcbKeyMain.onclick = () => copyText(dom.inputPcbActiveKey.value, 'Hardware API Key copied!');
@@ -2366,7 +2605,8 @@ async function sendSimPacket(customPayload = null) {
     battery_req_current: Number(dom.slReqA.value),
     battery_temp: Number(dom.slTemp.value),
     charger_temp: Number(dom.slTemp.value) + 5.5,
-    status: Number(dom.slA.value) > 0.5 ? 'CHARGING' : 'ONLINE'
+    battery_connected: state.simBatteryConnected !== false,
+    status: (state.simBatteryConnected !== false && Number(dom.slA.value) > 0.5) ? 'CHARGING' : 'ONLINE'
   };
 
   try {
@@ -2495,6 +2735,13 @@ function initNavigation() {
   }
   if (dom.btnChargerPowerOff) {
     dom.btnChargerPowerOff.onclick = () => controlCharger(state.selectedChargerId, 'OFF');
+  }
+
+  // Battery Hardware Connection Toggle in Cockpit
+  if (dom.btnToggleCockpitBattConn) {
+    dom.btnToggleCockpitBattConn.onclick = () => {
+      window.toggleBatteryHardwareConnection(state.selectedChargerId);
+    };
   }
 
   // Charge Points Search & Filter handlers (User Requirement)

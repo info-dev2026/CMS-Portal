@@ -9,36 +9,53 @@
 
 const http = require('http');
 
-// Config: Default Key for Bay 01
-const API_KEY = process.env.PCB_KEY || 'evc_live_9f82d1c470be31980a32e1';
+// Config: Default Key for Bay 01 / Active Fleet Charger
+const API_KEY = process.env.PCB_KEY || 'evc_live_959f59a8a1f8a7e728815256';
 const PORT = process.env.PORT || 3000;
 const HOST = 'localhost';
 
-let soc = 76.5;
-let voltage = 415.0;
-let current = 145.0;
-let reqVoltage = 425.0;
-let reqCurrent = 160.0;
-let batteryTemp = 33.8;
+// Battery connection flag: can be set via --disconnected / --connected argument or env variable
+const isDisconnectedArg = process.argv.includes('--disconnected') || process.env.BATTERY_CONNECTED === 'false';
+let batteryConnected = !isDisconnectedArg;
+
+let soc = batteryConnected ? 76.5 : 0.0;
+let voltage = batteryConnected ? 415.0 : 0.0;
+let current = batteryConnected ? 145.0 : 0.0;
+let reqVoltage = batteryConnected ? 425.0 : 0.0;
+let reqCurrent = batteryConnected ? 160.0 : 0.0;
+let batteryTemp = batteryConnected ? 33.8 : 24.0;
 let chargerTemp = 41.2;
+let chargingState = batteryConnected ? 'CHARGING' : 'IDLE';
 
 console.log('========================================================');
-console.log('⚡ SIMULATING PCB TELEMETRY STREAM');
+console.log('⚡ SIMULATING PCB TELEMETRY & HARDWARE CONTROLLER STREAM');
 console.log(`🔑 Using PCB API Key: ${API_KEY}`);
 console.log(`🌐 Target: http://${HOST}:${PORT}/api/telemetry`);
+console.log(`🔋 Battery Hardware Status: ${batteryConnected ? 'CONNECTED (BMS Engaged)' : 'DISCONNECTED (No Battery)'}`);
+console.log('💡 Tip: Run with "node test-pcb-client.js --disconnected" to simulate unplugged battery');
 console.log('========================================================');
 
 function sendPacket() {
-  // Simulate battery charging progress & micro ADC sensor noise
-  soc = Math.min(100, +(soc + 0.1).toFixed(2));
-  voltage = +(voltage + (Math.random() - 0.5) * 1.5).toFixed(1);
-  current = +(current + (Math.random() - 0.5) * 2.0).toFixed(1);
-  batteryTemp = +(batteryTemp + (Math.random() - 0.5) * 0.1).toFixed(1);
+  if (batteryConnected) {
+    // Simulate battery charging progress & micro ADC sensor noise
+    soc = Math.min(100, +(soc + 0.1).toFixed(2));
+    voltage = +(voltage + (Math.random() - 0.5) * 1.5).toFixed(1);
+    current = +(current + (Math.random() - 0.5) * 2.0).toFixed(1);
+    batteryTemp = +(batteryTemp + (Math.random() - 0.5) * 0.1).toFixed(1);
 
-  // If SoC > 85%, simulate BMS tapering current demand (Constant Voltage Mode)
-  if (soc > 85) {
-    reqCurrent = Math.max(30, +(reqCurrent - 1.5).toFixed(1));
-    current = Math.min(current, reqCurrent);
+    // If SoC > 85%, simulate BMS tapering current demand (Constant Voltage Mode)
+    if (soc > 85) {
+      reqCurrent = Math.max(30, +(reqCurrent - 1.5).toFixed(1));
+      current = Math.min(current, reqCurrent);
+    }
+    chargingState = 'CHARGING';
+  } else {
+    voltage = 0.0;
+    current = 0.0;
+    soc = 0.0;
+    reqVoltage = 0.0;
+    reqCurrent = 0.0;
+    chargingState = 'IDLE';
   }
 
   const payload = JSON.stringify({
@@ -49,8 +66,9 @@ function sendPacket() {
     battery_req_current: reqCurrent,
     battery_temp: batteryTemp,
     charger_temp: chargerTemp,
-    status: 'CHARGING',
-    charging_mode: soc > 85 ? 'CV TAPER MODE' : 'SPORT PLUS // CC FAST'
+    battery_connected: batteryConnected,
+    status: chargingState,
+    charging_mode: !batteryConnected ? 'STANDBY // NO BATTERY' : (soc > 85 ? 'CV TAPER MODE' : 'SPORT PLUS // CC FAST')
   });
 
   const options = {
@@ -73,7 +91,21 @@ function sendPacket() {
       try {
         const json = JSON.parse(body);
         if (json.success) {
-          console.log(`[${now}] ✅ Ingested: ${voltage}V, ${current}A (${json.power_kw} kW) | Req: ${reqVoltage}V, ${reqCurrent}A | SoC: ${soc}%`);
+          console.log(`[${now}] ✅ Ingested: ${voltage}V, ${current}A (${json.power_kw} kW) | Battery: ${batteryConnected ? 'CONNECTED' : 'DISCONNECTED'} | SoC: ${soc}%`);
+
+          // Process incoming dashboard commands
+          if (json.pendingCommands && Array.isArray(json.pendingCommands) && json.pendingCommands.length > 0) {
+            json.pendingCommands.forEach(cmd => {
+              console.log(`[${now}] 📡 PCB COMMAND RECEIVED FROM DASHBOARD: [${cmd.command}]`);
+              if (cmd.command === 'AUTHENTICATE_BATTERY_CONNECT') {
+                if (batteryConnected) {
+                  console.log(`[${now}] 🟢 AUTH RESPONSE: Battery IS connected. Sending positive acknowledgement to CSMS.`);
+                } else {
+                  console.log(`[${now}] 🔴 AUTH RESPONSE: Battery is NOT connected! Hardware safety interlock active.`);
+                }
+              }
+            });
+          }
         } else {
           console.log(`[${now}] ❌ Rejected: ${json.error}`);
         }
@@ -91,6 +123,6 @@ function sendPacket() {
   req.end();
 }
 
-// Send initial packet then repeat at 1 Hz
+// Send initial packet then repeat at 1.2s intervals
 sendPacket();
 setInterval(sendPacket, 1200);

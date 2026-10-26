@@ -243,6 +243,12 @@ class Database {
           if (!c.credentials) {
             c.credentials = { username: `bay0${idx + 1}`, password: 'password123' };
           }
+          if (c.batteryConnected === undefined) {
+            c.batteryConnected = true;
+          }
+          if (!c.pendingCommands) {
+            c.pendingCommands = [];
+          }
           return c;
         });
         this.saveChargers();
@@ -487,6 +493,56 @@ class Database {
     return charger;
   }
 
+  // --- Hardware PCB Command Queue & Battery Authentication ---
+
+  queueCommand(id, commandType, params = {}) {
+    const charger = this.getChargerById(id);
+    if (!charger) return null;
+    if (!charger.pendingCommands) charger.pendingCommands = [];
+    const cmd = {
+      id: 'cmd_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      command: commandType,
+      params,
+      timestamp: Date.now()
+    };
+    charger.pendingCommands.push(cmd);
+    if (charger.pendingCommands.length > 20) charger.pendingCommands.shift();
+    this.saveChargers();
+    return cmd;
+  }
+
+  getPendingCommands(id) {
+    const charger = this.getChargerById(id);
+    if (!charger || !charger.pendingCommands) return [];
+    const cmds = [...charger.pendingCommands];
+    charger.pendingCommands = [];
+    this.saveChargers();
+    return cmds;
+  }
+
+  peekPendingCommands(id) {
+    const charger = this.getChargerById(id);
+    if (!charger || !charger.pendingCommands) return [];
+    return charger.pendingCommands;
+  }
+
+  setBatteryConnected(id, isConnected) {
+    const charger = this.getChargerById(id);
+    if (!charger) return null;
+    charger.batteryConnected = Boolean(isConnected);
+    if (!charger.telemetry) charger.telemetry = {};
+    charger.telemetry.battery_connected = charger.batteryConnected;
+    if (!charger.batteryConnected && charger.status === 'CHARGING') {
+      charger.status = 'ONLINE';
+      charger.telemetry.status = 'ONLINE';
+      charger.telemetry.power_kw = 0.0;
+      charger.telemetry.charger_current = 0.0;
+      charger.telemetry.charging_mode = 'STANDBY // NO BATTERY';
+    }
+    this.saveChargers();
+    return charger;
+  }
+
   // --- Auth & Users ---
 
   authenticateUser(username, password) {
@@ -579,6 +635,12 @@ class Database {
 
     const rawReqA = payload.battery_req_current ?? payload.req_current ?? payload.battery_current_req ?? payload.reqA ?? payload.target_current;
     const reqA = rawReqA !== undefined && rawReqA !== null && !isNaN(Number(rawReqA)) ? Number(rawReqA) : (prev.battery_req_current || (isAc ? 32.0 : 160.0));
+
+    // Hardware PCB Battery Connection detection (Pilot / BMS / CAN-Bus state)
+    const rawBattConn = payload.battery_connected ?? payload.batteryConnected ?? payload.battery_present ?? payload.ev_connected;
+    if (rawBattConn !== undefined && rawBattConn !== null) {
+      charger.batteryConnected = (rawBattConn === true || rawBattConn === 'true' || rawBattConn === 1 || rawBattConn === '1');
+    }
 
     const rawEnergy = payload.session_energy_kwh ?? payload.energy_kwh ?? payload.kwh ?? payload.kWh ?? payload.energy ?? payload.sessionKwh;
 
@@ -701,6 +763,7 @@ class Database {
       status: resolvedStatus,
       charging_mode: payload.charging_mode || prev.charging_mode || (isAc ? 'AC SMART // LEVEL 2' : 'SPORT PLUS // CC FAST'),
       fault_code: payload.fault_code || prev.fault_code || 'NONE',
+      battery_connected: charger.batteryConnected !== false,
       session_energy_kwh: currentEnergy,
       session_duration_min: duration,
       power_kw: resolvedStatus === 'CHARGED' ? 0.0 : pKw,
