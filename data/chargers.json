@@ -26,11 +26,11 @@
     "maxCurrent": 350,
     "connectorType": "Custom CAN-Bus Lab Bench",
     "status": "CHARGING",
-    "lastSeen": 1792992880116,
+    "lastSeen": 1792996485266,
     "telemetry": {
-      "charger_voltage": 420.5,
-      "charger_current": 152,
-      "battery_soc": 79.5,
+      "charger_voltage": 419,
+      "charger_current": 145,
+      "battery_soc": 85,
       "battery_req_voltage": 425,
       "battery_req_current": 160,
       "battery_temp": 35.1,
@@ -38,11 +38,11 @@
       "status": "CHARGING",
       "charging_mode": "SPORT PLUS // CC FAST",
       "fault_code": "NONE",
-      "session_energy_kwh": 48.2,
-      "session_duration_min": 22.4,
-      "power_kw": 63.92,
+      "session_energy_kwh": 49.402,
+      "session_duration_min": 23.6,
+      "power_kw": 60.76,
       "target_power_kw": 68,
-      "timestamp": 1792992880116
+      "timestamp": 1792996485266
     },
     "history": [
       {
@@ -62,6 +62,24 @@
         "battery_req_voltage": 425,
         "battery_req_current": 160,
         "power_kw": 63.92
+      },
+      {
+        "timestamp": 1792996414031,
+        "charger_voltage": 420,
+        "charger_current": 150,
+        "battery_soc": 82,
+        "battery_req_voltage": 425,
+        "battery_req_current": 160,
+        "power_kw": 63
+      },
+      {
+        "timestamp": 1792996485266,
+        "charger_voltage": 419,
+        "charger_current": 145,
+        "battery_soc": 85,
+        "battery_req_voltage": 425,
+        "battery_req_current": 160,
+        "power_kw": 60.76
       }
     ]
   },

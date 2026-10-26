@@ -4,6 +4,14 @@
     {
       "source": "/api/(.*)",
       "destination": "https://cms-backend-0bce.onrender.com/api/$1"
+    },
+    {
+      "source": "/telemetry(.*)",
+      "destination": "https://cms-backend-0bce.onrender.com/api/telemetry$1"
+    },
+    {
+      "source": "/data(.*)",
+      "destination": "https://cms-backend-0bce.onrender.com/api/telemetry$1"
     }
   ]
 }

@@ -7,7 +7,22 @@ const db = require('../database/db');
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.text({ type: ['text/*', 'application/javascript'], limit: '10mb' }));
+
+// Global JSON error handler (returns pure JSON instead of HTML on body-parser syntax errors)
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({
+      success: false,
+      error: 'Malformed JSON payload received.',
+      message: err.message,
+      hint: 'Ensure your JSON body is valid RFC 8259 JSON (double-quoted keys and string values, no trailing commas).'
+    });
+  }
+  next(err);
+});
 
 // Serverless WebSocket broadcast stub (safe no-op)
 const broadcast = (data) => {
@@ -15,7 +30,7 @@ const broadcast = (data) => {
 };
 
 // Health & Root API
-app.get('/api', (req, res) => {
+app.get(['/api', '/api/health'], (req, res) => {
   res.json({
     status: 'online',
     system: 'SAAPHZONE CSMS Control API',
@@ -28,7 +43,13 @@ app.get('/api', (req, res) => {
 app.use('/api/auth', require('../backend/routes/authRoutes'));
 app.use('/api/postgres', require('../backend/routes/postgresRoutes'));
 app.use('/api/chargers', require('../backend/routes/chargerRoutes')(broadcast));
-app.use('/api/telemetry', require('../backend/routes/telemetryRoutes')(broadcast));
+
+const telemetryRouter = require('../backend/routes/telemetryRoutes')(broadcast);
+app.use('/api/telemetry', telemetryRouter);
+app.use('/telemetry', telemetryRouter);
+app.use('/api/data', telemetryRouter);
+app.use('/data', telemetryRouter);
+
 app.use('/api/tariffs', require('../backend/routes/tariffRoutes')(broadcast));
 app.use('/api/tokens', require('../backend/routes/tokenRoutes')(broadcast));
 app.use('/api/reports', require('../backend/routes/reportRoutes'));
@@ -78,4 +99,14 @@ app.get('/api/network/stats', (req, res) => {
   }
 });
 
+// Catch-all for serverless API: never return HTML
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    error: `Endpoint not found: ${req.method} ${req.originalUrl}`,
+    hint: 'To ingest EV telemetry, send a POST request to /api/telemetry or /telemetry.'
+  });
+});
+
 module.exports = app;
+

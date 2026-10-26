@@ -290,8 +290,25 @@ class Database {
     return this.chargers.find(c => c.id === id);
   }
 
-  getChargerByApiKey(apiKey) {
-    return this.chargers.find(c => c.apiKey === apiKey);
+  getChargerByApiKey(key) {
+    if (!key) return null;
+    const str = String(key).trim();
+    // 1. Direct match on API Key
+    let found = this.chargers.find(c => c.apiKey === str);
+    if (found) return found;
+    // 2. Direct match on Charger ID
+    found = this.chargers.find(c => c.id === str);
+    if (found) return found;
+    // 3. Case-insensitive match on charger name
+    const lower = str.toLowerCase();
+    found = this.chargers.find(c => c.name && c.name.toLowerCase() === lower);
+    if (found) return found;
+    // 4. Case-insensitive match on terminal credentials username
+    found = this.chargers.find(c => c.credentials && c.credentials.username && c.credentials.username.toLowerCase() === lower);
+    if (found) return found;
+    // 5. Partial match on API Key or ID
+    found = this.chargers.find(c => (c.apiKey && c.apiKey.includes(str)) || (c.id && c.id.includes(str)));
+    return found || null;
   }
 
   isAcConnector(connectorType) {

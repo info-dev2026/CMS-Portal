@@ -169,6 +169,7 @@ const dom = {
   btnToggleSidebar: document.getElementById('btnToggleSidebar'),
   btnSidebarCollapse: document.getElementById('btnSidebarCollapse'),
   topChargerSelect: document.getElementById('topChargerSelect'),
+  cockpitChargerSelect: document.getElementById('cockpitChargerSelect'),
   btnOpenReportModal: document.getElementById('btnOpenReportModal'),
   btnTopAddCharger: document.getElementById('btnTopAddCharger'),
 
@@ -1418,8 +1419,15 @@ function initDial() {
 }
 
 function updateCockpitTelemetry() {
+  if (!state.selectedChargerId && state.chargers.length > 0) {
+    state.selectedChargerId = state.chargers[0].id;
+  }
   const charger = state.chargers.find(c => c.id === state.selectedChargerId);
   if (!charger) return;
+
+  if (dom.cockpitChargerSelect && state.selectedChargerId) {
+    dom.cockpitChargerSelect.value = state.selectedChargerId;
+  }
 
   const t = charger.telemetry || {};
   const v = Number(t.charger_voltage || 0);
@@ -2154,7 +2162,8 @@ function exportReportCsv() {
 
 window.selectAndOpenCockpit = (id) => {
   state.selectedChargerId = id;
-  dom.topChargerSelect.value = id;
+  if (dom.topChargerSelect) dom.topChargerSelect.value = id;
+  if (dom.cockpitChargerSelect) dom.cockpitChargerSelect.value = id;
   switchView('cockpitView');
   updateCockpitTelemetry();
 };
@@ -2457,6 +2466,14 @@ function initNavigation() {
     };
   }
 
+  if (dom.cockpitChargerSelect) {
+    dom.cockpitChargerSelect.onchange = (e) => {
+      state.selectedChargerId = e.target.value;
+      updateCockpitTelemetry();
+      updatePcbKeyView();
+    };
+  }
+
   // Prominent battery button click navigates to live cockpit
   if (dom.btnBatteryPercentageBadge) {
     dom.btnBatteryPercentageBadge.onclick = () => switchView('cockpitView');
@@ -2536,6 +2553,19 @@ function populateChargerSelect() {
       sel.appendChild(opt);
     });
   }
+
+  const cockpitSel = dom.cockpitChargerSelect || document.getElementById('cockpitChargerSelect');
+  if (cockpitSel) {
+    cockpitSel.innerHTML = '';
+    state.chargers.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = `${c.name} [${c.status}]`;
+      if (c.id === state.selectedChargerId) opt.selected = true;
+      cockpitSel.appendChild(opt);
+    });
+  }
+
   populateReportChargerSelect();
 }
 

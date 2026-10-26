@@ -620,7 +620,14 @@
           <div class="cockpit-header-banner">
             <div class="banner-left">
               <span class="cockpit-brand-pill">SAAPHZONE TELEMETRY CLUSTER</span>
-              <h2 class="cockpit-bay-title" id="cockpitCurrentBayTitle">SAAPHZONE HyperCharge Bay 01</h2>
+              <div class="cockpit-title-row" style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                <h2 class="cockpit-bay-title" id="cockpitCurrentBayTitle">SAAPHZONE HyperCharge Bay 01</h2>
+                <div class="cockpit-switcher-wrap" style="display: flex; align-items: center; gap: 8px;">
+                  <label for="cockpitChargerSelect" style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px;">STATION:</label>
+                  <select id="cockpitChargerSelect" class="cockpit-charger-dropdown" style="padding: 5px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-light); background: var(--bg-card); color: var(--text-main); font-size: 0.85rem; font-weight: 600; cursor: pointer;">
+                  </select>
+                </div>
+              </div>
               <span class="cockpit-bay-sub" id="cockpitCurrentBayLocation">Terminal A - Stall 01 • CCS2 Liquid-Cooled
                 800V</span>
             </div>
@@ -1400,7 +1407,7 @@
   <!-- TOAST NOTIFICATIONS -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <script src="js/app.js?v=4.6"></script>
+  <script src="js/app.js?v=4.7"></script>
 </body>
 
 </html>

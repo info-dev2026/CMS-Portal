@@ -18,7 +18,22 @@ const PORT = process.env.PORT || 3000;
 const FRONTEND_DIR = path.join(__dirname, '..', 'frontend');
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.text({ type: ['text/*', 'application/javascript'], limit: '10mb' }));
+
+// Global JSON error handler (returns pure JSON instead of HTML on body-parser syntax errors)
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({
+      success: false,
+      error: 'Malformed JSON payload received.',
+      message: err.message,
+      hint: 'Ensure your JSON body is valid RFC 8259 JSON (double-quoted keys and string values, no trailing commas).'
+    });
+  }
+  next(err);
+});
 
 app.use((req, res, next) => {
   if (req.url) {
@@ -42,7 +57,13 @@ function broadcast(data) {
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/postgres', require('./routes/postgresRoutes'));
 app.use('/api/chargers', require('./routes/chargerRoutes')(broadcast));
-app.use('/api/telemetry', require('./routes/telemetryRoutes')(broadcast));
+
+const telemetryRouter = require('./routes/telemetryRoutes')(broadcast);
+app.use('/api/telemetry', telemetryRouter);
+app.use('/telemetry', telemetryRouter);
+app.use('/api/data', telemetryRouter);
+app.use('/data', telemetryRouter);
+
 app.use('/api/tariffs', require('./routes/tariffRoutes')(broadcast));
 app.use('/api/tokens', require('./routes/tokenRoutes')(broadcast));
 app.use('/api/reports', require('./routes/reportRoutes'));
@@ -88,8 +109,22 @@ app.get('/api/network/stats', (req, res) => {
   });
 });
 
-// Fallback to frontend index.html for client-side routing
+// Fallback to frontend index.html ONLY for GET browser page navigation
+// NEVER return HTML for API calls, POST requests, or non-HTML requests
 app.use((req, res) => {
+  if (
+    req.path.startsWith('/api') ||
+    req.path.startsWith('/telemetry') ||
+    req.path.startsWith('/data') ||
+    req.method !== 'GET' ||
+    !req.accepts('html')
+  ) {
+    return res.status(404).json({
+      success: false,
+      error: `Endpoint not found: ${req.method} ${req.originalUrl}`,
+      hint: 'To ingest EV telemetry, send a POST request to /api/telemetry or /telemetry with your charger API key.'
+    });
+  }
   res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
 });
 
