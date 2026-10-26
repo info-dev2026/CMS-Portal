@@ -376,6 +376,7 @@ body.dark-theme .login-hint-box {
   border-right: 1px solid var(--sidebar-border);
   z-index: 100;
   overflow-y: auto;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
 }
 
 .sidebar-brand {
@@ -383,6 +384,27 @@ body.dark-theme .login-hint-box {
   align-items: center;
   gap: 12px;
   padding: 24px 20px 20px 20px;
+}
+
+.btn-sidebar-toggle-inline {
+  margin-left: auto;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #94a3b8;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-sidebar-toggle-inline:hover {
+  background: var(--primary-cyan);
+  border-color: var(--primary-cyan);
+  color: #ffffff;
 }
 
 .brand-text-block { display: flex; flex-direction: column; }
@@ -496,6 +518,19 @@ body.dark-theme .login-hint-box {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  transition: margin-left 0.3s cubic-bezier(0.16, 1, 0.3, 1), width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Collapsible / Hideable Sidebar State */
+.app-layout.sidebar-hidden .sidebar-nav {
+  transform: translateX(-100%);
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.app-layout.sidebar-hidden .main-viewport {
+  margin-left: 0;
+  width: 100%;
 }
 
 .app-top-header {
@@ -510,6 +545,64 @@ body.dark-theme .login-hint-box {
   top: 0;
   z-index: 40;
   transition: var(--transition);
+}
+
+.header-left-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.btn-sidebar-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  color: var(--text-main);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-family);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+
+body.dark-theme .btn-sidebar-toggle {
+  background: var(--bg-card-subtle);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f1f5f9;
+}
+
+.btn-sidebar-toggle:hover {
+  background: var(--primary-cyan-light);
+  border-color: var(--primary-cyan);
+  color: var(--primary-cyan-hover);
+  transform: translateY(-1px);
+}
+
+body.dark-theme .btn-sidebar-toggle:hover {
+  background: rgba(0, 163, 224, 0.15);
+  border-color: var(--primary-cyan);
+  color: #38bdf8;
+}
+
+.app-layout.sidebar-hidden .btn-sidebar-toggle {
+  background: var(--primary-cyan);
+  border-color: var(--primary-cyan);
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 163, 224, 0.35);
+}
+
+.app-layout.sidebar-hidden .btn-sidebar-toggle:hover {
+  background: var(--primary-cyan-hover);
+  color: #ffffff;
+}
+
+.sidebar-toggle-icon {
+  stroke: currentColor;
 }
 
 .page-main-heading { font-size: 1.3rem; font-weight: 800; letter-spacing: -0.3px; color: var(--text-main); line-height: 1.1; }
@@ -1784,3 +1877,284 @@ input:checked + .slider:before { transform: translateX(18px); }
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   LAST DATA RECEIVED TIMESTAMP BADGES & ANIMATIONS
+   ========================================================================== */
+
+.portal-last-received-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid var(--border-card);
+  padding: 5px 14px;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+  cursor: default;
+  user-select: none;
+}
+
+body.dark-theme .portal-last-received-badge {
+  background: var(--bg-card);
+  border-color: rgba(0, 163, 224, 0.3);
+}
+
+.portal-last-received-badge.pulse-flash {
+  animation: data-received-flash 1.2s ease-out;
+}
+
+@keyframes data-received-flash {
+  0% {
+    border-color: var(--primary-cyan);
+    box-shadow: 0 0 16px var(--primary-cyan-glow), inset 0 0 10px rgba(0, 163, 224, 0.2);
+    transform: scale(1.03);
+  }
+  100% {
+    border-color: var(--border-card);
+    box-shadow: var(--shadow-sm);
+    transform: scale(1);
+  }
+}
+
+body.dark-theme .portal-last-received-badge.pulse-flash {
+  animation: data-received-flash-dark 1.2s ease-out;
+}
+
+@keyframes data-received-flash-dark {
+  0% {
+    border-color: #38bdf8;
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.45), inset 0 0 10px rgba(56, 189, 248, 0.25);
+    transform: scale(1.03);
+  }
+  100% {
+    border-color: rgba(0, 163, 224, 0.3);
+    box-shadow: none;
+    transform: scale(1);
+  }
+}
+
+.timestamp-pulse-indicator {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ts-pulse-core {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary-cyan);
+  box-shadow: 0 0 8px var(--primary-cyan);
+}
+
+.ts-pulse-ring {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--primary-cyan);
+  opacity: 0.6;
+  animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  80%, 100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+.timestamp-details {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.timestamp-header-lbl {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+}
+
+.timestamp-time-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timestamp-time-val {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+body.dark-theme .timestamp-time-val {
+  color: #f8fafc;
+}
+
+.timestamp-relative-tag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--primary-cyan);
+  background: var(--primary-cyan-light);
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+}
+
+body.dark-theme .timestamp-relative-tag {
+  background: rgba(0, 163, 224, 0.2);
+  color: #38bdf8;
+}
+
+/* Cockpit Timestamp Card */
+.cockpit-timestamp-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-card);
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+
+body.dark-theme .cockpit-timestamp-card {
+  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(0, 163, 224, 0.25);
+}
+
+.cockpit-ts-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--primary-cyan-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.dark-theme .cockpit-ts-icon-wrap {
+  background: rgba(0, 163, 224, 0.2);
+}
+
+.cockpit-ts-icon {
+  font-size: 1rem;
+}
+
+.cockpit-ts-details {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.cockpit-ts-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.9px;
+  color: var(--text-muted);
+}
+
+.cockpit-ts-val-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cockpit-ts-time {
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+body.dark-theme .cockpit-ts-time {
+  color: #f1f5f9;
+}
+
+.cockpit-ts-rel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent-green);
+  background: var(--accent-green-light);
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+}
+
+body.dark-theme .cockpit-ts-rel {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
+/* Fleet Table Timestamp Column */
+.table-last-seen {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.tls-time {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+body.dark-theme .tls-time {
+  color: #e2e8f0;
+}
+
+.tls-rel {
+  font-size: 0.7rem;
+  color: var(--primary-cyan);
+  font-weight: 500;
+}
+
+/* Charge Points Grid Card Timestamp Row */
+.chg-last-seen-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card-subtle);
+  border: 1px dashed var(--border-card);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.76rem;
+  margin-top: 6px;
+}
+
+body.dark-theme .chg-last-seen-row {
+  background: rgba(15, 23, 42, 0.4);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.chg-last-seen-row .cls-label {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.chg-last-seen-row .cls-value {
+  font-family: var(--font-mono);
+  color: var(--text-main);
+}
+
+body.dark-theme .chg-last-seen-row .cls-value {
+  color: #f1f5f9;
+}
+
+.chg-last-seen-row .cls-rel {
+  color: var(--primary-cyan);
+  font-weight: 600;
+}
+

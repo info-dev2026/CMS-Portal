@@ -129,7 +129,8 @@ const state = {
   simInterval: null,
   chargePointsSearchQuery: '',
   chargePointsFilterStatus: 'ALL',
-  pendingDeleteChargerId: null
+  pendingDeleteChargerId: null,
+  lastDataReceived: null
 };
 
 // DOM Cache
@@ -161,8 +162,9 @@ const dom = {
   btnAppThemeToggle: document.getElementById('btnAppThemeToggle'),
   themeIconIndicator: document.getElementById('themeIconIndicator'),
   themeLabelText: document.getElementById('themeLabelText'),
-  btnBatteryPercentageBadge: document.getElementById('btnBatteryPercentageBadge'),
-  battButtonPercent: document.getElementById('battButtonPercent'),
+  // Sidebar Toggle Buttons
+  btnToggleSidebar: document.getElementById('btnToggleSidebar'),
+  btnSidebarCollapse: document.getElementById('btnSidebarCollapse'),
   topChargerSelect: document.getElementById('topChargerSelect'),
   btnTopAddCharger: document.getElementById('btnTopAddCharger'),
 
@@ -219,6 +221,9 @@ const dom = {
   // Cockpit Telemetry
   cockpitCurrentBayTitle: document.getElementById('cockpitCurrentBayTitle'),
   cockpitCurrentBayLocation: document.getElementById('cockpitCurrentBayLocation'),
+  cockpitTimestampCard: document.getElementById('cockpitTimestampCard'),
+  cockpitLastDataTime: document.getElementById('cockpitLastDataTime'),
+  cockpitLastDataRel: document.getElementById('cockpitLastDataRel'),
   cockpitBattCenterNum: document.getElementById('cockpitBattCenterNum'),
   cockpitCircleFill: document.getElementById('cockpitCircleFill'),
   cockpitBattSubDesc: document.getElementById('cockpitBattSubDesc'),
@@ -333,10 +338,144 @@ const dom = {
 };
 
 // ==========================================================================
+// 0. TIME & TIMESTAMPING UTILITIES (Track Last Received Data on Portal)
+// ==========================================================================
+
+function formatFullTimestamp(timestamp) {
+  if (!timestamp) return 'No data received yet';
+  const d = new Date(timestamp);
+  if (isNaN(d.getTime())) return 'Invalid timestamp';
+  return d.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+}
+
+function formatTimeOnly(timestamp) {
+  if (!timestamp) return '--:--:--';
+  const d = new Date(timestamp);
+  if (isNaN(d.getTime())) return '--:--:--';
+  return d.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+}
+
+function getRelativeTimeStr(timestamp) {
+  if (!timestamp) return 'Waiting for data';
+  const diffMs = Date.now() - Number(timestamp);
+  if (diffMs < 0 || diffMs < 2000) return 'Just now';
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) return `${diffSec}s ago`;
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d ago`;
+}
+
+function updateGlobalTimestampDisplay(triggerFlash = false) {
+  if (!dom.portalLastDataTime) return;
+
+  if (!state.lastDataReceived) {
+    dom.portalLastDataTime.textContent = '--:--:--';
+    if (dom.portalLastDataRel) dom.portalLastDataRel.textContent = 'Waiting for data';
+    return;
+  }
+
+  dom.portalLastDataTime.textContent = formatTimeOnly(state.lastDataReceived);
+  if (dom.portalLastDataRel) {
+    dom.portalLastDataRel.textContent = getRelativeTimeStr(state.lastDataReceived);
+  }
+  if (dom.portalLastReceivedBadge) {
+    dom.portalLastReceivedBadge.title = `Last data received: ${formatFullTimestamp(state.lastDataReceived)}`;
+    if (triggerFlash) {
+      dom.portalLastReceivedBadge.classList.remove('pulse-flash');
+      void dom.portalLastReceivedBadge.offsetWidth;
+      dom.portalLastReceivedBadge.classList.add('pulse-flash');
+    }
+  }
+}
+
+function updateAllRelativeTimestamps() {
+  // Update header relative time
+  if (state.lastDataReceived && dom.portalLastDataRel) {
+    dom.portalLastDataRel.textContent = getRelativeTimeStr(state.lastDataReceived);
+  }
+
+  // Update cockpit relative time
+  if (state.selectedChargerId && dom.cockpitLastDataRel) {
+    const chg = state.chargers.find(c => c.id === state.selectedChargerId);
+    if (chg && chg.lastSeen) {
+      dom.cockpitLastDataRel.textContent = getRelativeTimeStr(chg.lastSeen);
+    }
+  }
+
+  // Update table cells
+  document.querySelectorAll('.table-last-seen').forEach(el => {
+    const ts = el.getAttribute('data-last-seen');
+    if (ts) {
+      const relEl = el.querySelector('.tls-rel');
+      if (relEl) relEl.textContent = getRelativeTimeStr(ts);
+    }
+  });
+
+  // Update card rows
+  document.querySelectorAll('.chg-last-seen-row').forEach(el => {
+    const ts = el.getAttribute('data-last-seen');
+    if (ts) {
+      const relEl = el.querySelector('.cls-rel');
+      if (relEl) relEl.textContent = `(${getRelativeTimeStr(ts)})`;
+    }
+  });
+}
+
+// ==========================================================================
 // 1. INITIALIZATION & AUTHENTICATION
 // ==========================================================================
 
+function initSidebarToggle() {
+  const isHidden = localStorage.getItem('saaphzone_sidebar_hidden') === 'true';
+  if (isHidden && dom.appLayout) {
+    dom.appLayout.classList.add('sidebar-hidden');
+    updateSidebarToggleBtnText(true);
+  }
+
+  const toggleSidebar = () => {
+    if (!dom.appLayout) return;
+    const nowHidden = dom.appLayout.classList.toggle('sidebar-hidden');
+    localStorage.setItem('saaphzone_sidebar_hidden', nowHidden ? 'true' : 'false');
+    updateSidebarToggleBtnText(nowHidden);
+  };
+
+  if (dom.btnToggleSidebar) {
+    dom.btnToggleSidebar.onclick = toggleSidebar;
+  }
+  if (dom.btnSidebarCollapse) {
+    dom.btnSidebarCollapse.onclick = toggleSidebar;
+  }
+}
+
+function updateSidebarToggleBtnText(isHidden) {
+  const textEl = document.querySelector('.sidebar-toggle-text');
+  if (textEl) {
+    textEl.textContent = isHidden ? 'Show Sidebar' : 'Hide Sidebar';
+  }
+  if (dom.btnToggleSidebar) {
+    dom.btnToggleSidebar.title = isHidden ? 'Show Sidebar Content' : 'Hide Sidebar Content';
+  }
+}
+
 function initApp() {
+  initSidebarToggle();
   loadSavedTheme();
   initThemeListeners();
   initAuth();
@@ -351,6 +490,8 @@ function initApp() {
   fetchChargers();
   // Continuous real-time auto-poll fallback every 3 seconds
   setInterval(fetchChargers, 3000);
+  // Live relative timestamp ticker (updates 'Just now', '4s ago', etc. every 1 sec)
+  setInterval(updateAllRelativeTimestamps, 1000);
 }
 
 function initAuth() {
@@ -669,6 +810,11 @@ function handleWsMessage(msg) {
   switch (msg.type) {
     case 'INIT':
       state.chargers = msg.chargers || [];
+      const initLatest = state.chargers.reduce((max, c) => Math.max(max, c.lastSeen || c.telemetry?.timestamp || 0), 0);
+      if (initLatest > 0) {
+        state.lastDataReceived = initLatest;
+        updateGlobalTimestampDisplay();
+      }
       if (!state.selectedChargerId && state.chargers.length > 0) {
         state.selectedChargerId = state.chargers[0].id;
       }
@@ -687,9 +833,11 @@ function handleWsMessage(msg) {
         fetchChargers();
         return;
       }
+      const nowPacketTime = msg.lastSeen || msg.telemetry?.timestamp || Date.now();
+      state.lastDataReceived = nowPacketTime;
+      chg.lastSeen = nowPacketTime;
       chg.telemetry = msg.telemetry;
       chg.status = msg.status;
-      chg.lastSeen = msg.lastSeen;
       if (msg.stats) chg.stats = msg.stats;
       if (msg.sessionPendingReset !== undefined) chg.sessionPendingReset = msg.sessionPendingReset;
 
@@ -705,6 +853,7 @@ function handleWsMessage(msg) {
       });
       if (chg.history.length > 50) chg.history.shift();
 
+      updateGlobalTimestampDisplay(true);
       updateDashboardTableRow(chg);
       renderChargePointsCards();
       updateKpis();
@@ -763,6 +912,11 @@ async function fetchChargers() {
       const data = await res.json();
       if (data.success && Array.isArray(data.chargers) && data.chargers.length > 0) {
         state.chargers = data.chargers;
+        const latest = state.chargers.reduce((max, c) => Math.max(max, c.lastSeen || c.telemetry?.timestamp || 0), 0);
+        if (latest > 0 && (!state.lastDataReceived || latest > state.lastDataReceived)) {
+          state.lastDataReceived = latest;
+        }
+        updateGlobalTimestampDisplay();
         if (!state.selectedChargerId && state.chargers.length > 0) {
           state.selectedChargerId = state.chargers[0].id;
         }
@@ -783,6 +937,11 @@ async function fetchChargers() {
 
   // Ensure current chargers in state are fully rendered
   if (state.chargers.length > 0) {
+    const latest = state.chargers.reduce((max, c) => Math.max(max, c.lastSeen || c.telemetry?.timestamp || 0), 0);
+    if (latest > 0 && (!state.lastDataReceived || latest > state.lastDataReceived)) {
+      state.lastDataReceived = latest;
+    }
+    updateGlobalTimestampDisplay();
     if (!state.selectedChargerId) {
       state.selectedChargerId = state.chargers[0].id;
     }
@@ -875,6 +1034,12 @@ function renderDashboardTable() {
         <span class="table-soc-pill">🔋 ${soc}%</span>
       </td>
       <td>${renderPowerCell(c)}</td>
+      <td>
+        <div class="table-last-seen" data-last-seen="${c.lastSeen || ''}">
+          <span class="tls-time">${formatTimeOnly(c.lastSeen)}</span>
+          <span class="tls-rel">${getRelativeTimeStr(c.lastSeen)}</span>
+        </div>
+      </td>
       <td><code>${c.apiKey.substring(0, 14)}...</code></td>
       <td>
         <button class="btn-table-action" onclick="selectAndOpenCockpit('${c.id}')">Cockpit</button>
@@ -909,6 +1074,12 @@ function updateDashboardTableRow(c) {
   tr.children[3].innerHTML = `<strong>${a} A</strong> <span style="color:var(--primary-cyan); font-size:0.75rem;">(Req: ${reqA}A)</span>`;
   tr.children[4].innerHTML = `<span class="table-soc-pill">🔋 ${soc}%</span>`;
   tr.children[5].innerHTML = renderPowerCell(c);
+  tr.children[6].innerHTML = `
+    <div class="table-last-seen" data-last-seen="${c.lastSeen || ''}">
+      <span class="tls-time">${formatTimeOnly(c.lastSeen)}</span>
+      <span class="tls-rel">${getRelativeTimeStr(c.lastSeen)}</span>
+    </div>
+  `;
 }
 
 // ==========================================================================
@@ -1236,15 +1407,32 @@ function updateCockpitTelemetry() {
   const bTemp = Number(t.battery_temp || 25);
   const chgTemp = Number(t.charger_temp || 25);
 
-  // DEDICATED PROMINENT BATTERY LEVEL BUTTON (User Requirement)
-  dom.battButtonPercent.textContent = `${soc.toFixed(1)}%`;
-  dom.cockpitBattCenterNum.textContent = `${Math.round(soc)}%`;
-  dom.cockpitCircleFill.setAttribute('stroke-dasharray', `${soc.toFixed(0)}, 100`);
-  dom.cockpitBattSubDesc.textContent = `${soc.toFixed(1)}% Already Charged`;
+  // Prominent Battery Level Status (if present)
+  if (dom.battButtonPercent) dom.battButtonPercent.textContent = `${soc.toFixed(1)}%`;
+  if (dom.cockpitBattCenterNum) dom.cockpitBattCenterNum.textContent = `${Math.round(soc)}%`;
+  if (dom.cockpitCircleFill) dom.cockpitCircleFill.setAttribute('stroke-dasharray', `${soc.toFixed(0)}, 100`);
+  if (dom.cockpitBattSubDesc) dom.cockpitBattSubDesc.textContent = `${soc.toFixed(1)}% Already Charged`;
 
   // Banner & Readout
   dom.cockpitCurrentBayTitle.textContent = charger.name;
   dom.cockpitCurrentBayLocation.textContent = `${charger.location} • ${charger.connectorType}`;
+
+  // Update Cockpit Last Data Ingested Badge
+  if (dom.cockpitLastDataTime) {
+    const bayLastSeen = charger.lastSeen || t.timestamp;
+    if (bayLastSeen) {
+      dom.cockpitLastDataTime.textContent = formatTimeOnly(bayLastSeen);
+      if (dom.cockpitLastDataRel) {
+        dom.cockpitLastDataRel.textContent = getRelativeTimeStr(bayLastSeen);
+      }
+      if (dom.cockpitTimestampCard) {
+        dom.cockpitTimestampCard.title = `Last ingested telemetry for ${charger.name}: ${formatFullTimestamp(bayLastSeen)}`;
+      }
+    } else {
+      dom.cockpitLastDataTime.textContent = '--:--:--';
+      if (dom.cockpitLastDataRel) dom.cockpitLastDataRel.textContent = 'Waiting for data';
+    }
+  }
   const chargerIsAc = isAcCharger(charger);
   const sessionKwh = Number(t.session_energy_kwh || 0);
   const heldLabel = isAcSessionHeld(charger) ? ' (Held)' : '';
@@ -1479,6 +1667,14 @@ function renderChargePointsCards() {
         <span>Terminal Login:</span>
         <strong>${escapeHtml(cred.username)}</strong> (pass: <code>${escapeHtml(cred.password)}</code>)
         <button class="btn-copy-tiny" onclick="openEditCredentialsModal('${c.id}')">Edit</button>
+      </div>
+
+      <div class="chg-last-seen-row" data-last-seen="${c.lastSeen || ''}">
+        <span class="cls-label">🕒 Last Data Received:</span>
+        <span class="cls-value">
+          <strong class="cls-time">${formatTimeOnly(c.lastSeen)}</strong>
+          <span class="cls-rel">(${getRelativeTimeStr(c.lastSeen)})</span>
+        </span>
       </div>
 
       <div class="card-actions-row">
@@ -1960,7 +2156,9 @@ function initNavigation() {
   };
 
   // Prominent battery button click navigates to live cockpit
-  dom.btnBatteryPercentageBadge.onclick = () => switchView('cockpitView');
+  if (dom.btnBatteryPercentageBadge) {
+    dom.btnBatteryPercentageBadge.onclick = () => switchView('cockpitView');
+  }
 
   // Add charger buttons navigate to dedicated Add Charger page
   dom.btnTopAddCharger.onclick = () => switchView('addChargerPage');

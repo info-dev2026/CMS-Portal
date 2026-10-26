@@ -97,6 +97,11 @@
           <span class="brand-title">SAAPHZONE</span>
           <span class="brand-sub">CSMS CONTROL</span>
         </div>
+        <button type="button" class="btn-sidebar-toggle-inline" id="btnSidebarCollapse" title="Hide Sidebar" aria-label="Hide Sidebar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
       </div>
 
       <!-- Main Navigation Menu -->
@@ -258,29 +263,24 @@
 
       <!-- TOP STATUS & CONTROLS HEADER -->
       <header class="app-top-header">
-        <div class="header-breadcrumb">
-          <h2 class="page-main-heading" id="pageHeadingTitle">Dashboard</h2>
-          <span class="page-sub-heading" id="pageHeadingSubtitle">Network overview • All organizations</span>
+        <div class="header-left-group">
+          <!-- Button to Hide/Show Sidebar Content -->
+          <button type="button" class="btn-sidebar-toggle" id="btnToggleSidebar" title="Hide/Show Sidebar Content" aria-label="Toggle Sidebar">
+            <svg class="sidebar-toggle-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+            <span class="sidebar-toggle-text">Hide Sidebar</span>
+          </button>
+
+          <div class="header-breadcrumb">
+            <h2 class="page-main-heading" id="pageHeadingTitle">Dashboard</h2>
+            <span class="page-sub-heading" id="pageHeadingSubtitle">Network overview • All organizations</span>
+          </div>
         </div>
 
         <div class="header-actions">
-
-          <!-- Live Network Indicator (Matches Screenshot) -->
-          <div class="live-network-badge">
-            <span class="live-pulse-dot"></span>
-            <span class="live-label">Live</span>
-          </div>
-
-          <!-- THE PROMINENT BATTERY PERCENTAGE BUTTON (Reflects current SoC battery already has) -->
-          <button class="battery-status-button" id="btnBatteryPercentageBadge"
-            title="Current Battery Level Already Present">
-            <div class="battery-soc-pill">
-              <span class="batt-icon">🔋</span>
-              <span class="batt-val" id="battButtonPercent">78%</span>
-            </div>
-            <div class="batt-label-sub">BATTERY PRESENT</div>
-          </button>
-
           <!-- Theme Toggle Button (Light Theme / Dark Theme) -->
           <button class="btn-theme-switcher" id="btnAppThemeToggle" title="Toggle Light / Dark Theme">
             <span class="theme-icon-indicator" id="themeIconIndicator">🌙</span>
@@ -402,6 +402,7 @@
                     <th>Current / Req</th>
                     <th>Battery SoC Present</th>
                     <th>Power (kW) / Energy (kWh)</th>
+                    <th>Last Data Received</th>
                     <th>PCB API Key</th>
                     <th>Actions</th>
                   </tr>
@@ -622,6 +623,20 @@
               <h2 class="cockpit-bay-title" id="cockpitCurrentBayTitle">SAAPHZONE HyperCharge Bay 01</h2>
               <span class="cockpit-bay-sub" id="cockpitCurrentBayLocation">Terminal A - Stall 01 • CCS2 Liquid-Cooled
                 800V</span>
+            </div>
+
+            <!-- Cockpit Per-Bay Last Data Ingested Badge -->
+            <div class="cockpit-timestamp-card" id="cockpitTimestampCard" title="Last telemetry packet ingested for this bay">
+              <div class="cockpit-ts-icon-wrap">
+                <span class="cockpit-ts-icon">📡</span>
+              </div>
+              <div class="cockpit-ts-details">
+                <span class="cockpit-ts-label">LAST INGESTED DATA</span>
+                <div class="cockpit-ts-val-row">
+                  <span class="cockpit-ts-time" id="cockpitLastDataTime">--:--:--</span>
+                  <span class="cockpit-ts-rel" id="cockpitLastDataRel">Waiting for data</span>
+                </div>
+              </div>
             </div>
 
             <div class="banner-right">
@@ -1287,7 +1302,7 @@
   <!-- TOAST NOTIFICATIONS -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <script src="js/app.js?v=4.3"></script>
+  <script src="js/app.js?v=4.5"></script>
 </body>
 
 </html>

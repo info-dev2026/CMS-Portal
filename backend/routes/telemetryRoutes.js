@@ -61,7 +61,9 @@ module.exports = function(broadcast) {
       chargerId: charger.id,
       power_kw: charger.telemetry.power_kw,
       battery_soc: charger.telemetry.battery_soc,
-      timestamp: charger.telemetry.timestamp
+      timestamp: charger.telemetry.timestamp,
+      lastSeen: charger.lastSeen,
+      receivedAt: new Date(charger.lastSeen).toISOString()
     });
   });
 
