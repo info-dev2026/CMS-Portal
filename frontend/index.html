@@ -1512,18 +1512,22 @@
         <p class="modal-main-message alert-text">
           The battery isn't connected with the charger. Please connect the battery.
         </p>
-        <p class="modal-sub-message">
-          PCB hardware reported that no EV battery pack or BMS Pilot wire signal is detected. High-voltage power flow remains disabled for safety.
+        <p class="modal-sub-message" id="popupNotConnectedSubMsg">
+          No PCB hardware is currently active with this charger's authentication key. Please connect your PCB hardware controller to begin charging.
         </p>
 
         <div class="hardware-auth-details-box warning-box">
           <div class="auth-detail-row">
             <span class="detail-label">PCB Status:</span>
-            <span class="detail-value text-green">● Online (Command Verified)</span>
+            <span class="detail-value text-red" id="popupNotConnectedPcbStatus">● Offline (No PCB with Auth Key)</span>
           </div>
           <div class="auth-detail-row">
-            <span class="detail-label">Battery Interlock:</span>
-            <span class="detail-value text-red">✕ Open (No Battery Detected)</span>
+            <span class="detail-label">Auth Key:</span>
+            <code class="detail-value" id="popupNotConnectedAuthKey" style="font-size:0.75rem;">evc_live_...</code>
+          </div>
+          <div class="auth-detail-row">
+            <span class="detail-label">Battery Link:</span>
+            <span class="detail-value text-red" id="popupNotConnectedBattLink">✕ Not Connected</span>
           </div>
           <div class="auth-detail-row">
             <span class="detail-label">Charge Point:</span>
@@ -1535,7 +1539,7 @@
       <div class="modal-actions-row">
         <button type="button" class="btn-outline-sm" id="btnDismissBatteryModal">Close</button>
         <button type="button" class="btn-primary-cyan" id="btnQuickConnectBattery">
-          <span>🔌 Connect Battery &amp; Start Charging</span>
+          <span>🔄 Retry PCB &amp; Battery Check</span>
         </button>
       </div>
     </div>

@@ -53,6 +53,46 @@ function broadcast(data) {
   });
 }
 
+// Hardware PCB Heartbeat Watchdog:
+// Verifies whether a PCB authorizing the charger's auth key is actively streaming.
+// If no packet received within 25 seconds, marks charger OFFLINE and battery link DISCONNECTED.
+setInterval(() => {
+  try {
+    const now = Date.now();
+    let hasChanges = false;
+    db.getAllChargers().forEach(charger => {
+      const isOnline = Boolean(charger.lastSeen && (now - charger.lastSeen <= 25000));
+      if (!isOnline && (charger.status !== 'OFFLINE' || charger.batteryConnected !== false)) {
+        charger.status = 'OFFLINE';
+        charger.batteryConnected = false;
+        if (!charger.telemetry) charger.telemetry = {};
+        charger.telemetry.status = 'OFFLINE';
+        charger.telemetry.battery_connected = false;
+        charger.telemetry.power_kw = 0.0;
+        charger.telemetry.charger_current = 0.0;
+        hasChanges = true;
+
+        broadcast({
+          type: 'CHARGER_UPDATED',
+          charger
+        });
+        broadcast({
+          type: 'TELEMETRY_UPDATE',
+          chargerId: charger.id,
+          telemetry: charger.telemetry,
+          status: charger.status
+        });
+      }
+    });
+
+    if (hasChanges) {
+      db.saveChargers();
+    }
+  } catch (err) {
+    console.error('Error in PCB watchdog interval:', err);
+  }
+}, 5000);
+
 // Mount modular routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/postgres', require('./routes/postgresRoutes'));

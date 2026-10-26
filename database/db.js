@@ -229,7 +229,7 @@ class Database {
       if (fs.existsSync(CHARGERS_FILE)) {
         const raw = fs.readFileSync(CHARGERS_FILE, 'utf8');
         this.chargers = JSON.parse(raw);
-        // Ensure every charger has tariff and stats
+        const now = Date.now();
         this.chargers = this.chargers.map((c, idx) => {
           if (!c.tariff) {
             c.tariff = { ratePerKwh: 18.00, currency: '₹', sessionFee: 40.00 };
@@ -243,11 +243,26 @@ class Database {
           if (!c.credentials) {
             c.credentials = { username: `bay0${idx + 1}`, password: 'password123' };
           }
-          if (c.batteryConnected === undefined) {
-            c.batteryConnected = true;
-          }
           if (!c.pendingCommands) {
             c.pendingCommands = [];
+          }
+
+          // Strict PCB hardware authentication check:
+          // Battery connection comes from whether the PCB authorizing this auth key is ON & streaming
+          const isPcbActive = Boolean(c.lastSeen && (now - c.lastSeen <= 25000));
+          if (!isPcbActive) {
+            c.batteryConnected = false;
+            c.status = 'OFFLINE';
+            if (c.telemetry) {
+              c.telemetry.status = 'OFFLINE';
+              c.telemetry.battery_connected = false;
+              c.telemetry.power_kw = 0.0;
+              c.telemetry.charger_current = 0.0;
+            }
+          } else {
+            if (c.batteryConnected === undefined) {
+              c.batteryConnected = Boolean(c.telemetry && c.telemetry.battery_connected);
+            }
           }
           return c;
         });
@@ -541,6 +556,12 @@ class Database {
     }
     this.saveChargers();
     return charger;
+  }
+
+  isPcbOnline(idOrCharger, timeoutMs = 25000) {
+    const charger = typeof idOrCharger === 'string' ? this.getChargerById(idOrCharger) : idOrCharger;
+    if (!charger || !charger.lastSeen) return false;
+    return (Date.now() - charger.lastSeen) <= timeoutMs;
   }
 
   // --- Auth & Users ---

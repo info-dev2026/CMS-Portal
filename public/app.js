@@ -275,9 +275,12 @@ const dom = {
   btnOkChargingBegin: document.getElementById('btnOkChargingBegin'),
   btnCloseBatteryNotConnectedModal: document.getElementById('btnCloseBatteryNotConnectedModal'),
   btnDismissBatteryModal: document.getElementById('btnDismissBatteryModal'),
-  btnQuickConnectBattery: document.getElementById('btnQuickConnectBattery'),
   popupBeginChargerName: document.getElementById('popupBeginChargerName'),
   popupNotConnectedChargerName: document.getElementById('popupNotConnectedChargerName'),
+  popupNotConnectedSubMsg: document.getElementById('popupNotConnectedSubMsg'),
+  popupNotConnectedPcbStatus: document.getElementById('popupNotConnectedPcbStatus'),
+  popupNotConnectedAuthKey: document.getElementById('popupNotConnectedAuthKey'),
+  popupNotConnectedBattLink: document.getElementById('popupNotConnectedBattLink'),
   cockpitBatteryHwBar: document.getElementById('cockpitBatteryHwBar'),
   cockpitBattConnDot: document.getElementById('cockpitBattConnDot'),
   cockpitBattConnText: document.getElementById('cockpitBattConnText'),
@@ -1397,9 +1400,11 @@ window.controlCharger = async (id, action) => {
 
       const data = await res.json();
 
-      if (data.batteryConnected === true || (data.success && data.batteryConnected !== false)) {
-        // --- CASE 1: BATTERY IS CONNECTED ---
-        // Update local charger state
+      // Battery connection MUST come from active PCB authorizing this authentication key
+      const isChargingAuthorized = data.success === true && data.batteryConnected === true && data.pcbOnline !== false;
+
+      if (isChargingAuthorized) {
+        // --- CASE 1: BATTERY IS CONNECTED & PCB HARDWARE AUTHENTICATED ---
         if (chg) {
           chg.status = data.status || 'CHARGING';
           chg.batteryConnected = true;
@@ -1419,14 +1424,15 @@ window.controlCharger = async (id, action) => {
 
         showToast('⚡ Charging begin.');
       } else {
-        // --- CASE 2: BATTERY IS NOT CONNECTED ---
+        // --- CASE 2: BATTERY IS NOT CONNECTED / NO PCB ON AUTH KEY ---
         if (chg) {
-          chg.status = data.status || 'ONLINE';
+          chg.status = data.status || (data.pcbOnline === false ? 'OFFLINE' : 'ONLINE');
           chg.batteryConnected = false;
           if (chg.telemetry) {
             chg.telemetry.power_kw = 0.0;
             chg.telemetry.charger_current = 0.0;
             chg.telemetry.battery_connected = false;
+            chg.telemetry.status = chg.status;
           }
         }
 
@@ -1435,11 +1441,40 @@ window.controlCharger = async (id, action) => {
         renderChargePointsCards();
         updateKpis();
 
-        // Display POPUP: The battery isn't connected with the charger. Please connect the battery.
+        // Populate popup status details dynamically
         if (dom.popupNotConnectedChargerName) dom.popupNotConnectedChargerName.textContent = chargerName;
+        if (dom.popupNotConnectedAuthKey) dom.popupNotConnectedAuthKey.textContent = data.apiKey || chg?.apiKey || 'evc_live_...';
+
+        if (data.pcbOnline === false) {
+          if (dom.popupNotConnectedSubMsg) {
+            dom.popupNotConnectedSubMsg.textContent = "There is no PCB connected with this authentication key. The battery connection signal comes from the authorized PCB. Please power on the PCB hardware to authorize this auth key.";
+          }
+          if (dom.popupNotConnectedPcbStatus) {
+            dom.popupNotConnectedPcbStatus.textContent = '● Offline (No PCB with Auth Key)';
+            dom.popupNotConnectedPcbStatus.className = 'detail-value text-red';
+          }
+          if (dom.popupNotConnectedBattLink) {
+            dom.popupNotConnectedBattLink.textContent = '✕ Disconnected (No Hardware Signal)';
+            dom.popupNotConnectedBattLink.className = 'detail-value text-red';
+          }
+        } else {
+          if (dom.popupNotConnectedSubMsg) {
+            dom.popupNotConnectedSubMsg.textContent = "PCB hardware is online with auth key, but reports the battery is not connected. Please connect the vehicle battery.";
+          }
+          if (dom.popupNotConnectedPcbStatus) {
+            dom.popupNotConnectedPcbStatus.textContent = '● Online (PCB Authorized)';
+            dom.popupNotConnectedPcbStatus.className = 'detail-value text-green';
+          }
+          if (dom.popupNotConnectedBattLink) {
+            dom.popupNotConnectedBattLink.textContent = '✕ Disconnected (Interlock Open)';
+            dom.popupNotConnectedBattLink.className = 'detail-value text-red';
+          }
+        }
+
+        // Display POPUP: The battery isn't connected with the charger. Please connect the battery.
         if (dom.modalBatteryNotConnected) dom.modalBatteryNotConnected.classList.add('active');
 
-        showToast("⚠️ The battery isn't connected with the charger. Please connect the battery.", 'error');
+        showToast("The battery isn't connected with the charger. Please connect the battery.", 'error');
       }
     } catch (e) {
       if (dom.modalAuthenticatingPcb) dom.modalAuthenticatingPcb.classList.remove('active');
@@ -1623,16 +1658,20 @@ function updateCockpitTelemetry() {
   }
 
   // Update Battery Hardware Connection Status Bar in Cockpit
-  const isBattConnected = charger.batteryConnected !== false && (t.battery_connected !== false);
+  const nowMs = Date.now();
+  const isPcbStreaming = Boolean(charger.lastSeen && (nowMs - charger.lastSeen <= 25000));
+  const isBattConnected = isPcbStreaming && (charger.batteryConnected === true) && (t.battery_connected === true);
   if (dom.cockpitBatteryHwBar) {
     if (isBattConnected) {
       dom.cockpitBatteryHwBar.classList.remove('disconnected');
       if (dom.cockpitBattConnText) dom.cockpitBattConnText.textContent = 'BATTERY HARDWARE: CONNECTED (BMS LINK OK)';
-      if (dom.btnToggleCockpitBattConn) dom.btnToggleCockpitBattConn.textContent = 'Simulate Disconnect';
     } else {
       dom.cockpitBatteryHwBar.classList.add('disconnected');
-      if (dom.cockpitBattConnText) dom.cockpitBattConnText.textContent = 'BATTERY HARDWARE: DISCONNECTED (NO EV DETECTED)';
-      if (dom.btnToggleCockpitBattConn) dom.btnToggleCockpitBattConn.textContent = 'Simulate Connect';
+      if (dom.cockpitBattConnText) {
+        dom.cockpitBattConnText.textContent = isPcbStreaming
+          ? 'BATTERY HARDWARE: DISCONNECTED (INTERLOCK OPEN)'
+          : 'BATTERY HARDWARE: OFFLINE (NO PCB WITH AUTH KEY)';
+      }
     }
   }
 
@@ -2050,26 +2089,12 @@ function initModals() {
     dom.btnDismissBatteryModal.onclick = () => dom.modalBatteryNotConnected?.classList.remove('active');
   }
   if (dom.btnQuickConnectBattery) {
-    dom.btnQuickConnectBattery.onclick = async () => {
+    dom.btnQuickConnectBattery.onclick = () => {
       dom.modalBatteryNotConnected?.classList.remove('active');
       const chargerId = state.selectedChargerId;
       if (!chargerId) return;
-      try {
-        await fetch(`/api/chargers/${chargerId}/battery-status`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ connected: true })
-        });
-        const chg = state.chargers.find(c => c.id === chargerId);
-        if (chg) {
-          chg.batteryConnected = true;
-          if (chg.telemetry) chg.telemetry.battery_connected = true;
-        }
-        showToast('🔌 Battery connected to charger hardware. Starting charging...');
-        setTimeout(() => controlCharger(chargerId, 'ON'), 300);
-      } catch (err) {
-        showToast(`Error: ${err.message}`, 'error');
-      }
+      showToast('🔄 Verifying PCB hardware connection with auth key...');
+      setTimeout(() => controlCharger(chargerId, 'ON'), 200);
     };
   }
 

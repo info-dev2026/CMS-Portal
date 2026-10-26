@@ -99,29 +99,21 @@ module.exports = function(broadcast) {
     }
 
     if (isTurnOn) {
-      // 1. Send command to PCB Hardware to authenticate battery connection
-      const command = db.queueCommand(chargerId, 'AUTHENTICATE_BATTERY_CONNECT', {
-        action: 'START_CHARGING',
-        requestedAt: Date.now()
-      });
+      const now = Date.now();
+      const pcbHeartbeatTimeout = 25000; // 25s active communication window
+      const isPcbOnline = Boolean(charger.lastSeen && (now - charger.lastSeen <= pcbHeartbeatTimeout));
 
-      // 2. Authenticate whether battery is connected with the hardware
-      // Criteria:
-      // - Explicit charger.batteryConnected must not be false
-      // - Telemetry battery_connected must not be false
-      const isConnected = charger.batteryConnected !== false &&
-        (charger.telemetry ? charger.telemetry.battery_connected !== false : true);
-
-      if (!isConnected) {
-        // Battery is NOT connected! Do NOT start charging!
-        charger.status = 'ONLINE';
+      // 1. Verify whether a PCB authorizing this authentication key is actually ON & active
+      if (!isPcbOnline) {
+        // NO PCB CONNECTED WITH THIS AUTHENTICATION KEY!
+        charger.status = 'OFFLINE';
         if (!charger.telemetry) charger.telemetry = {};
-        charger.telemetry.status = 'ONLINE';
+        charger.telemetry.status = 'OFFLINE';
         charger.telemetry.power_kw = 0.0;
         charger.telemetry.charger_current = 0.0;
-        charger.telemetry.charging_mode = 'STANDBY // NO BATTERY';
         charger.telemetry.battery_connected = false;
-        charger.lastSeen = Date.now();
+        charger.telemetry.charging_mode = 'OFFLINE // NO PCB CONNECTED';
+        charger.batteryConnected = false;
         db.saveChargers();
 
         broadcast({
@@ -138,15 +130,68 @@ module.exports = function(broadcast) {
         return res.status(200).json({
           success: false,
           batteryConnected: false,
+          pcbOnline: false,
           authenticated: false,
-          commandSent: command,
+          apiKey: charger.apiKey,
+          reason: 'NO_PCB_CONNECTED',
           title: "Battery Not Connected",
           message: "The battery isn't connected with the charger. Please connect the battery.",
-          error: "The battery isn't connected with the charger. Please connect the battery.",
+          error: "No PCB hardware connected with authentication key. The battery isn't connected with the charger. Please connect the battery.",
+          pcbStatus: "OFFLINE (No PCB with Auth Key)",
+          batteryLink: "DISCONNECTED (No Auth Key Hardware Signal)",
           status: charger.status,
           charger
         });
       }
+
+      // 2. PCB IS online with the auth key. Now check whether the authorized PCB confirms the battery is connected:
+      const isBatteryConnected = charger.batteryConnected === true &&
+        (charger.telemetry ? charger.telemetry.battery_connected === true : false);
+
+      if (!isBatteryConnected) {
+        // PCB is ON with the auth key, but reports that battery is not connected!
+        charger.status = 'ONLINE';
+        if (!charger.telemetry) charger.telemetry = {};
+        charger.telemetry.status = 'ONLINE';
+        charger.telemetry.power_kw = 0.0;
+        charger.telemetry.charger_current = 0.0;
+        charger.telemetry.charging_mode = 'STANDBY // NO BATTERY';
+        charger.telemetry.battery_connected = false;
+        db.saveChargers();
+
+        broadcast({
+          type: 'CHARGER_UPDATED',
+          charger
+        });
+        broadcast({
+          type: 'TELEMETRY_UPDATE',
+          chargerId: charger.id,
+          telemetry: charger.telemetry,
+          status: charger.status
+        });
+
+        return res.status(200).json({
+          success: false,
+          batteryConnected: false,
+          pcbOnline: true,
+          authenticated: false,
+          apiKey: charger.apiKey,
+          reason: 'BATTERY_NOT_CONNECTED',
+          title: "Battery Not Connected",
+          message: "The battery isn't connected with the charger. Please connect the battery.",
+          error: "The battery isn't connected with the charger. Please connect the battery.",
+          pcbStatus: "ONLINE (PCB Authorized with Auth Key)",
+          batteryLink: "DISCONNECTED (Interlock Open)",
+          status: charger.status,
+          charger
+        });
+      }
+
+      // 3. BOTH verified: PCB with authentication key is ON and battery is verified connected!
+      const command = db.queueCommand(chargerId, 'AUTHENTICATE_BATTERY_CONNECT', {
+        action: 'START_CHARGING',
+        requestedAt: now
+      });
 
       // Battery IS connected! Proceed with beginning charging session
       charger.batteryConnected = true;
@@ -244,13 +289,50 @@ module.exports = function(broadcast) {
     }
   });
 
-  // Toggle or update battery connection state (for testing / hardware simulator)
+  // Toggle or update battery connection state (for hardware simulation or test suite)
   router.post('/:id/battery-status', (req, res) => {
-    const { connected } = req.body;
-    const charger = db.setBatteryConnected(req.params.id, connected);
+    const { connected, forcePcb } = req.body;
+    const isConn = Boolean(connected);
+    const charger = db.getChargerById(req.params.id);
     if (!charger) {
       return res.status(404).json({ success: false, error: 'Charger not found' });
     }
+
+    const pcbOnline = db.isPcbOnline(charger);
+
+    if (isConn && !pcbOnline && !forcePcb) {
+      // PCB is not online with authentication key; battery connection cannot be established
+      charger.batteryConnected = false;
+      if (!charger.telemetry) charger.telemetry = {};
+      charger.telemetry.battery_connected = false;
+      db.saveChargers();
+
+      return res.status(200).json({
+        success: false,
+        batteryConnected: false,
+        pcbOnline: false,
+        apiKey: charger.apiKey,
+        message: "The battery isn't connected with the charger. Please connect the battery.",
+        error: "No active PCB hardware streaming with this authentication key.",
+        charger
+      });
+    }
+
+    db.setBatteryConnected(charger.id, isConn);
+
+    if (forcePcb) {
+      charger.lastSeen = Date.now();
+      charger.status = 'ONLINE';
+    }
+
+    if (isConn && pcbOnline) {
+      if (!charger.telemetry) charger.telemetry = {};
+      charger.telemetry.battery_connected = true;
+    } else if (!isConn) {
+      if (!charger.telemetry) charger.telemetry = {};
+      charger.telemetry.battery_connected = false;
+    }
+    db.saveChargers();
 
     broadcast({
       type: 'CHARGER_UPDATED',
@@ -267,6 +349,7 @@ module.exports = function(broadcast) {
     res.json({
       success: true,
       batteryConnected: charger.batteryConnected,
+      pcbOnline: db.isPcbOnline(charger),
       message: `Battery status updated to ${charger.batteryConnected ? 'CONNECTED' : 'DISCONNECTED'}.`,
       charger
     });
