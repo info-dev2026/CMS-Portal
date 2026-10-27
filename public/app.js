@@ -594,7 +594,10 @@ function initAuth() {
     }
 
     // Client-side fallback authentication if backend is offline/unreachable
-    if (username === 'admin' && password === 'password123') {
+    const uLower = username.toLowerCase();
+    const pLower = password.toLowerCase();
+    const isDefaultAdmin = (uLower === 'admin') && (password === 'password123' || pLower === 'password123' || pLower === 'admin' || pLower === 'admin123');
+    if (isDefaultAdmin) {
       const adminUser = { username: 'admin', role: 'ADMIN', name: 'Administrator' };
       state.currentUser = adminUser;
       localStorage.setItem('saaphzone_user', JSON.stringify(adminUser));
@@ -633,6 +636,18 @@ function initAuth() {
     dom.loginPassword.type = isPass ? 'text' : 'password';
     dom.btnTogglePwd.textContent = isPass ? '🔒' : '👁️';
   };
+
+  const btnQuickFillAdmin = document.getElementById('btnQuickFillAdmin');
+  if (btnQuickFillAdmin) {
+    btnQuickFillAdmin.onclick = () => {
+      dom.loginUsername.value = 'admin';
+      dom.loginPassword.value = 'password123';
+      dom.tabAdminLogin?.classList.add('active');
+      dom.tabChargerLogin?.classList.remove('active');
+      dom.lblLoginUser.textContent = 'Administrator Username';
+      showToast('🔑 Filled Admin: admin / password123');
+    };
+  }
 
   dom.tabAdminLogin.onclick = () => {
     dom.tabAdminLogin.classList.add('active');

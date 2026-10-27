@@ -568,13 +568,18 @@ class Database {
     const u = username.trim().toLowerCase();
     const p = password.trim();
 
-    // Check Admin
-    if (this.users.admin && this.users.admin.username.toLowerCase() === u && this.users.admin.password === p) {
-      return {
-        role: 'ADMIN',
-        username: this.users.admin.username,
-        name: this.users.admin.name || 'Administrator'
-      };
+    // Check Admin (support password123, admin, admin123 case-insensitively)
+    if (this.users.admin && this.users.admin.username.toLowerCase() === u) {
+      const storedPass = this.users.admin.password;
+      const pLower = p.toLowerCase();
+      const isAcceptedDefault = pLower === 'password123' || pLower === 'admin' || pLower === 'admin123';
+      if (storedPass === p || storedPass.toLowerCase() === pLower || isAcceptedDefault) {
+        return {
+          role: 'ADMIN',
+          username: this.users.admin.username,
+          name: this.users.admin.name || 'Administrator'
+        };
+      }
     }
 
     // Check Chargers

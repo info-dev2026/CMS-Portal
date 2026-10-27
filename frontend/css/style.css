@@ -279,6 +279,41 @@ body {
   font-size: 0.9rem;
 }
 
+.login-credentials-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(0, 163, 224, 0.08);
+  border: 1px dashed rgba(0, 163, 224, 0.35);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+.login-credentials-hint code {
+  color: var(--primary-cyan);
+  font-weight: 700;
+  background: rgba(0, 163, 224, 0.12);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.btn-fill-creds {
+  background: var(--primary-cyan);
+  color: #fff;
+  border: none;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-fill-creds:hover {
+  background: #008cc0;
+  transform: translateY(-1px);
+}
+
 .login-hint-box {
   background: var(--primary-cyan-light);
   border: 1px solid rgba(0, 163, 224, 0.2);
