@@ -1704,10 +1704,12 @@ function updateCockpitTelemetry() {
     ? `${t.charging_mode || 'AC STANDARD'} // ${charger.maxVoltage}V AC MAINS`
     : `${t.charging_mode || 'SPORT PLUS'} // ${charger.maxVoltage}V DC BUS`;
   dom.cockpitLeftKeyShort.textContent = `${charger.apiKey.substring(0, 16)}...`;
-  dom.cockpitSessionKwh.textContent = sessionKwh.toFixed(chargerIsAc ? 2 : 1);
-  dom.cockpitSessionTime.textContent = isAcSessionHeld(charger)
-    ? `${Number(t.session_duration_min || 0).toFixed(1)} min • Fully charged (held until next session)`
-    : `${Number(t.session_duration_min || 0).toFixed(1)} min active`;
+  if (dom.cockpitSessionKwh) dom.cockpitSessionKwh.textContent = sessionKwh.toFixed(chargerIsAc ? 2 : 1);
+  if (dom.cockpitSessionTime) {
+    dom.cockpitSessionTime.textContent = isAcSessionHeld(charger)
+      ? `${Number(t.session_duration_min || 0).toFixed(1)} min • Fully charged (held until next session)`
+      : `${Number(t.session_duration_min || 0).toFixed(1)} min active`;
+  }
 
   const radarRatio = pKw / 100;
   dom.cockpitRadarNum.textContent = `${radarRatio.toFixed(1)} P`;

@@ -1394,7 +1394,7 @@ body.dark-theme .batt-btn-title {
 .pcb-key-badge { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); }
 .btn-copy-tiny { background: var(--primary-cyan-light); border: none; color: var(--primary-cyan-hover); padding: 4px 8px; border-radius: var(--radius-sm); font-size: 0.7rem; font-weight: 700; cursor: pointer; }
 
-.dual-small-cards { display: grid; grid-template-columns: 110px 1fr; gap: 14px; margin-top: 16px; }
+.dual-small-cards { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 16px; }
 .mini-radar { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 12px; }
 .radar-circle-widget { width: 58px; height: 58px; border-radius: 50%; border: 1px dashed rgba(0, 163, 224, 0.4); position: relative; display: flex; align-items: center; justify-content: center; margin: 6px 0; }
 .radar-ring.r1 { width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(0, 163, 224, 0.25); position: absolute; }
