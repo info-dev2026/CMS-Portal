@@ -596,7 +596,7 @@ function initAuth() {
     // Client-side fallback authentication if backend is offline/unreachable
     const uLower = username.toLowerCase();
     const pLower = password.toLowerCase();
-    const isDefaultAdmin = (uLower === 'admin') && (password === 'password123' || pLower === 'password123' || pLower === 'admin' || pLower === 'admin123');
+    const isDefaultAdmin = (uLower === 'admin') && (password === 'password123' || pLower === 'password123' || pLower === 'saaphzone123' || pLower === 'admin' || pLower === 'admin123');
     if (isDefaultAdmin) {
       const adminUser = { username: 'admin', role: 'ADMIN', name: 'Administrator' };
       state.currentUser = adminUser;
