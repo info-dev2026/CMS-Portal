@@ -251,18 +251,27 @@ const dom = {
   cockpitSessionTime: document.getElementById('cockpitSessionTime'),
   cockpitSocVal: document.getElementById('cockpitSocVal'),
   cockpitSocBar: document.getElementById('cockpitSocBar'),
+  cockpitSocName: document.getElementById('cockpitSocName'),
+  cockpitVName: document.getElementById('cockpitVName'),
   cockpitActualV: document.getElementById('cockpitActualV'),
   cockpitReqV: document.getElementById('cockpitReqV'),
   cockpitVFill: document.getElementById('cockpitVFill'),
   cockpitVMarker: document.getElementById('cockpitVMarker'),
+  cockpitAName: document.getElementById('cockpitAName'),
   cockpitActualA: document.getElementById('cockpitActualA'),
   cockpitReqA: document.getElementById('cockpitReqA'),
   cockpitAFill: document.getElementById('cockpitAFill'),
   cockpitAMarker: document.getElementById('cockpitAMarker'),
+  cockpitKwRow: document.getElementById('cockpitKwRow'),
+  cockpitRightKwVal: document.getElementById('cockpitRightKwVal'),
+  cockpitRightKwBar: document.getElementById('cockpitRightKwBar'),
+  cockpitBattTempRow: document.getElementById('cockpitBattTempRow'),
+  cockpitChgTempRow: document.getElementById('cockpitChgTempRow'),
   cockpitBattTempVal: document.getElementById('cockpitBattTempVal'),
   cockpitBattTempBar: document.getElementById('cockpitBattTempBar'),
   cockpitChgTempVal: document.getElementById('cockpitChgTempVal'),
   cockpitChgTempBar: document.getElementById('cockpitChgTempBar'),
+  cockpitRightVehicleImgWrapper: document.getElementById('cockpitRightVehicleImgWrapper'),
   cockpitStatusBadge: document.getElementById('cockpitStatusBadge'),
   btnChargerPowerOn: document.getElementById('btnChargerPowerOn'),
   btnChargerPowerOff: document.getElementById('btnChargerPowerOff'),
@@ -1710,26 +1719,68 @@ function updateCockpitTelemetry() {
   dom.cockpitSocVal.textContent = `${soc.toFixed(1)} %`;
   dom.cockpitSocBar.style.width = `${Math.max(2, soc)}%`;
 
-  // Voltage Comparison
-  const maxV = charger.maxVoltage || 800;
-  dom.cockpitActualV.textContent = chargerIsAc ? `${sessionKwh.toFixed(2)} kWh (${v.toFixed(1)} V)` : `${v.toFixed(1)} V`;
-  dom.cockpitReqV.textContent = reqV > 0 ? `Req: ${reqV.toFixed(1)} V` : 'Req: 0.0 V';
-  dom.cockpitVFill.style.width = `${Math.max(2, Math.min(100, (v / maxV) * 100))}%`;
-  dom.cockpitVMarker.style.left = `${Math.max(2, Math.min(100, (reqV / maxV) * 100))}%`;
+  // For AC: power in kW is sent directly from the PCB (NOT calculated)
+  const pcbKw = Number(t.power_kw !== undefined && t.power_kw !== null ? t.power_kw : (pKw || 0));
 
-  // Current Comparison
-  const maxA = charger.maxCurrent || 350;
-  dom.cockpitActualA.textContent = `${a.toFixed(1)} A`;
-  dom.cockpitReqA.textContent = reqA > 0 ? `Req: ${reqA.toFixed(1)} A` : 'Req: 0.0 A';
-  dom.cockpitAFill.style.width = `${Math.max(2, Math.min(100, (a / maxA) * 100))}%`;
-  dom.cockpitAMarker.style.left = `${Math.max(2, Math.min(100, (reqA / maxA) * 100))}%`;
+  if (chargerIsAc) {
+    // AC Charger: DC amp, DC Volt, SOC, and kW (sent from PCB, not calculated)
+    if (dom.cockpitVName) dom.cockpitVName.textContent = 'DC VOLT';
+    if (dom.cockpitAName) dom.cockpitAName.textContent = 'DC AMP';
 
-  // Temperatures
-  dom.cockpitBattTempVal.textContent = `${bTemp.toFixed(1)} °C`;
-  dom.cockpitBattTempBar.style.width = `${Math.max(4, Math.min(100, (bTemp / 75) * 100))}%`;
+    const dcV = Number(t.dc_voltage !== undefined && t.dc_voltage !== null ? t.dc_voltage : v);
+    const dcA = Number(t.dc_current !== undefined && t.dc_current !== null ? t.dc_current : a);
 
-  dom.cockpitChgTempVal.textContent = `${chgTemp.toFixed(1)} °C`;
-  dom.cockpitChgTempBar.style.width = `${Math.max(4, Math.min(100, (chgTemp / 80) * 100))}%`;
+    const maxV = charger.maxVoltage || 500;
+    dom.cockpitActualV.textContent = `${dcV.toFixed(1)} V`;
+    dom.cockpitReqV.textContent = reqV > 0 ? `Req: ${reqV.toFixed(1)} V` : 'Req: 0.0 V';
+    dom.cockpitVFill.style.width = `${Math.max(2, Math.min(100, (dcV / maxV) * 100))}%`;
+    dom.cockpitVMarker.style.left = `${Math.max(2, Math.min(100, (reqV / maxV) * 100))}%`;
+
+    const maxA = charger.maxCurrent || 100;
+    dom.cockpitActualA.textContent = `${dcA.toFixed(1)} A`;
+    dom.cockpitReqA.textContent = reqA > 0 ? `Req: ${reqA.toFixed(1)} A` : 'Req: 0.0 A';
+    dom.cockpitAFill.style.width = `${Math.max(2, Math.min(100, (dcA / maxA) * 100))}%`;
+    dom.cockpitAMarker.style.left = `${Math.max(2, Math.min(100, (reqA / maxA) * 100))}%`;
+
+    // Active Power from PCB (NOT calculated from V * A)
+    if (dom.cockpitKwRow) dom.cockpitKwRow.style.display = 'flex';
+    if (dom.cockpitRightKwVal) dom.cockpitRightKwVal.textContent = `${pcbKw.toFixed(2)} kW`;
+    if (dom.cockpitRightKwBar) {
+      const maxKw = charger.maxPowerKw || 23;
+      dom.cockpitRightKwBar.style.width = `${Math.max(2, Math.min(100, (pcbKw / maxKw) * 100))}%`;
+    }
+
+    // Hide temperature rows for AC only as requested
+    if (dom.cockpitBattTempRow) dom.cockpitBattTempRow.style.display = 'none';
+    if (dom.cockpitChgTempRow) dom.cockpitChgTempRow.style.display = 'none';
+  } else {
+    // DC Charger: Standard full layout
+    if (dom.cockpitVName) dom.cockpitVName.textContent = 'VOLTAGE';
+    if (dom.cockpitAName) dom.cockpitAName.textContent = 'CURRENT';
+
+    const maxV = charger.maxVoltage || 800;
+    dom.cockpitActualV.textContent = `${v.toFixed(1)} V`;
+    dom.cockpitReqV.textContent = reqV > 0 ? `Req: ${reqV.toFixed(1)} V` : 'Req: 0.0 V';
+    dom.cockpitVFill.style.width = `${Math.max(2, Math.min(100, (v / maxV) * 100))}%`;
+    dom.cockpitVMarker.style.left = `${Math.max(2, Math.min(100, (reqV / maxV) * 100))}%`;
+
+    const maxA = charger.maxCurrent || 350;
+    dom.cockpitActualA.textContent = `${a.toFixed(1)} A`;
+    dom.cockpitReqA.textContent = reqA > 0 ? `Req: ${reqA.toFixed(1)} A` : 'Req: 0.0 A';
+    dom.cockpitAFill.style.width = `${Math.max(2, Math.min(100, (a / maxA) * 100))}%`;
+    dom.cockpitAMarker.style.left = `${Math.max(2, Math.min(100, (reqA / maxA) * 100))}%`;
+
+    if (dom.cockpitKwRow) dom.cockpitKwRow.style.display = 'none';
+    if (dom.cockpitBattTempRow) dom.cockpitBattTempRow.style.display = 'flex';
+    if (dom.cockpitChgTempRow) dom.cockpitChgTempRow.style.display = 'flex';
+
+    // Temperatures
+    dom.cockpitBattTempVal.textContent = `${bTemp.toFixed(1)} °C`;
+    dom.cockpitBattTempBar.style.width = `${Math.max(4, Math.min(100, (bTemp / 75) * 100))}%`;
+
+    dom.cockpitChgTempVal.textContent = `${chgTemp.toFixed(1)} °C`;
+    dom.cockpitChgTempBar.style.width = `${Math.max(4, Math.min(100, (chgTemp / 80) * 100))}%`;
+  }
 
   dom.cockpitStatusBadge.textContent = charger.status;
   dom.cockpitStatusBadge.className = charger.status === 'CHARGING' ? 'badge-status charging' : 'badge-status online';

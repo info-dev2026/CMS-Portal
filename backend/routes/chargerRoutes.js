@@ -220,7 +220,8 @@ module.exports = function(broadcast) {
         const curA = Number(charger.telemetry.charger_current);
         charger.telemetry.charger_voltage = curV > 100 && curV <= acV * 1.1 ? curV : acV;
         charger.telemetry.charger_current = curA > 0.5 && curA <= acA ? curA : acA;
-        charger.telemetry.power_kw = db.calculatePowerKw(charger.telemetry.charger_voltage, charger.telemetry.charger_current, true, charger.connectorType);
+        // Do NOT calculate kW for AC: use the kW measured/sent from PCB
+        charger.telemetry.power_kw = charger.telemetry.power_kw !== undefined && charger.telemetry.power_kw !== null ? Number(charger.telemetry.power_kw) : 0.0;
         charger.telemetry.charging_mode = 'AC SMART // LEVEL 2';
       } else {
         charger.telemetry.charger_voltage = charger.telemetry.charger_voltage > 100 ? charger.telemetry.charger_voltage : 418.5;

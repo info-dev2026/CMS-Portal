@@ -79,22 +79,22 @@ A comprehensive, enterprise-grade **EV Charging Station Management System (CSMS)
   - `Content-Type: application/json`
   - `x-api-key: <YOUR_CHARGER_API_KEY>` (e.g. `evc_live_0d975f1a5360db2917e90715`)
 
-### JSON Telemetry Payload
+### JSON Telemetry Payload (AC & DC)
 ```json
 {
-  "charger_voltage": 230.0,
-  "charger_current": 16.0,
+  "dc_voltage": 415.0,
+  "dc_current": 32.0,
   "battery_soc": 60.0,
+  "power_kw": 22.0,
   "battery_req_voltage": 415.0,
   "battery_req_current": 32.0,
-  "battery_temp": 28.5,
-  "charger_temp": 32.0,
   "battery_connected": true,
   "status": "ONLINE"
 }
 ```
-> **Note on Battery Connection:**
-> The server automatically detects battery connection if `battery_connected: true`, or if the PCB reports battery telemetry (`battery_soc > 0`, requested voltage/current, etc.). Send `"battery_connected": false` only when the vehicle/battery physical interlock is open.
+> **Note on AC Metrics & Power (kW):**
+> For AC chargers, the portal right section displays **DC Volt**, **DC Amp**, **Battery State (SOC)**, and **Active Power (kW)** with a dedicated connected vehicle visual.
+> The **kW** value is taken **directly from the PCB (`power_kw` or `kw`) without server calculation**.
 
 ---
 

@@ -793,25 +793,18 @@
                     </button>
                   </div>
 
-
-                  <!-- Battery SoC % -->
-                  <div class="cockpit-metric-row">
-                    <div class="metric-top">
-                      <span class="metric-name">BATTERY STATE (SoC)</span>
-                      <span class="metric-val highlight" id="cockpitSocVal">78.0 %</span>
-                    </div>
-                    <div class="progress-track">
-                      <div class="progress-fill green" id="cockpitSocBar" style="width: 78%;"></div>
-                    </div>
+                  <!-- Vehicle Image Above Metrics -->
+                  <div class="cockpit-vehicle-img-wrapper" id="cockpitRightVehicleImgWrapper">
+                    <img src="assets/porsche_transparent.png?v=4" alt="Connected Vehicle" class="cockpit-right-vehicle-img" id="cockpitRightVehicleImg" />
                   </div>
 
-                  <!-- Dual Voltage: Actual vs Battery Requested -->
-                  <div class="cockpit-metric-row dual">
+                  <!-- Dual Voltage: DC Volt / Actual vs Battery Requested -->
+                  <div class="cockpit-metric-row dual" id="cockpitVRow">
                     <div class="metric-top">
-                      <span class="metric-name">VOLTAGE</span>
+                      <span class="metric-name" id="cockpitVName">DC VOLT</span>
                       <div class="dual-readout">
-                        <span class="val-act" id="cockpitActualV">418.5 V</span>
-                        <span class="val-req" id="cockpitReqV">Req: 425.0 V</span>
+                        <span class="val-act" id="cockpitActualV">415.0 V</span>
+                        <span class="val-req" id="cockpitReqV">Req: 415.0 V</span>
                       </div>
                     </div>
                     <div class="dual-bar-track">
@@ -820,13 +813,13 @@
                     </div>
                   </div>
 
-                  <!-- Dual Current: Actual vs Battery Requested -->
-                  <div class="cockpit-metric-row dual">
+                  <!-- Dual Current: DC Amp / Actual vs Battery Requested -->
+                  <div class="cockpit-metric-row dual" id="cockpitARow">
                     <div class="metric-top">
-                      <span class="metric-name">CURRENT</span>
+                      <span class="metric-name" id="cockpitAName">DC AMP</span>
                       <div class="dual-readout">
-                        <span class="val-act" id="cockpitActualA">148.2 A</span>
-                        <span class="val-req" id="cockpitReqA">Req: 160.0 A</span>
+                        <span class="val-act" id="cockpitActualA">32.0 A</span>
+                        <span class="val-req" id="cockpitReqA">Req: 32.0 A</span>
                       </div>
                     </div>
                     <div class="dual-bar-track">
@@ -835,8 +828,30 @@
                     </div>
                   </div>
 
+                  <!-- Battery SoC % -->
+                  <div class="cockpit-metric-row" id="cockpitSocRow">
+                    <div class="metric-top">
+                      <span class="metric-name" id="cockpitSocName">BATTERY STATE (SOC)</span>
+                      <span class="metric-val highlight" id="cockpitSocVal">78.0 %</span>
+                    </div>
+                    <div class="progress-track">
+                      <div class="progress-fill green" id="cockpitSocBar" style="width: 78%;"></div>
+                    </div>
+                  </div>
+
+                  <!-- Power in kW from PCB (Direct, not calculated) -->
+                  <div class="cockpit-metric-row" id="cockpitKwRow">
+                    <div class="metric-top">
+                      <span class="metric-name" id="cockpitKwName">ACTIVE POWER (kW)</span>
+                      <span class="metric-val highlight text-cyan" id="cockpitRightKwVal">22.00 kW</span>
+                    </div>
+                    <div class="progress-track">
+                      <div class="progress-fill cyan" id="cockpitRightKwBar" style="width: 65%;"></div>
+                    </div>
+                  </div>
+
                   <!-- Battery Pack Temperature -->
-                  <div class="cockpit-metric-row">
+                  <div class="cockpit-metric-row" id="cockpitBattTempRow">
                     <div class="metric-top">
                       <span class="metric-name">BATTERY PACK TEMP</span>
                       <span class="metric-val" id="cockpitBattTempVal">34.2 °C</span>
@@ -847,7 +862,7 @@
                   </div>
 
                   <!-- Charger Cabinet Electronics Temp -->
-                  <div class="cockpit-metric-row">
+                  <div class="cockpit-metric-row" id="cockpitChgTempRow">
                     <div class="metric-top">
                       <span class="metric-name">CHARGER ELECTRONICS TEMP</span>
                       <span class="metric-val" id="cockpitChgTempVal">41.5 °C</span>

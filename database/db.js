@@ -693,10 +693,26 @@ class Database {
       }
     }
 
+    // DC Voltage & DC Current extraction (especially for AC charging DC link / battery pack readings)
+    const rawDcV = payload.dc_voltage ?? payload.dc_volt ?? payload.dc_v ?? payload.dcVoltage ?? payload.dcVolt ?? (isAc ? (rawV ?? prev.dc_voltage) : undefined);
+    const dcV = rawDcV !== undefined && rawDcV !== null && !isNaN(Number(rawDcV)) ? Number(rawDcV) : (prev.dc_voltage || v);
+
+    const rawDcA = payload.dc_current ?? payload.dc_amp ?? payload.dc_a ?? payload.dcCurrent ?? payload.dcAmp ?? (isAc ? (rawA ?? prev.dc_current) : undefined);
+    const dcA = rawDcA !== undefined && rawDcA !== null && !isNaN(Number(rawDcA)) ? Number(rawDcA) : (prev.dc_current || a);
+
     const rawEnergy = payload.session_energy_kwh ?? payload.energy_kwh ?? payload.kwh ?? payload.kWh ?? payload.energy ?? payload.sessionKwh;
 
-    // Automatically calculate power in kW for AC or DC
-    const pKw = payload.power_kw !== undefined && !isNaN(Number(payload.power_kw)) ? Number(payload.power_kw) : this.calculatePowerKw(v, a, isAc, charger.connectorType);
+    // Power in kW: sent directly from the PCB (DO NOT calculate it for AC)
+    const rawKw = payload.power_kw ?? payload.powerKw ?? payload.kw ?? payload.kW ?? payload.KW ?? payload.power ?? payload.p_kw ?? payload.active_power;
+    let pKw;
+    if (rawKw !== undefined && rawKw !== null && !isNaN(Number(rawKw))) {
+      pKw = Number(rawKw);
+    } else if (isAc) {
+      // For AC: Do not calculate it. The kW is sent from the PCB.
+      pKw = prev.power_kw !== undefined ? Number(prev.power_kw) : 0.0;
+    } else {
+      pKw = this.calculatePowerKw(v, a, isAc, charger.connectorType);
+    }
     const targetPKw = payload.target_power_kw !== undefined && !isNaN(Number(payload.target_power_kw)) ? Number(payload.target_power_kw) : this.calculatePowerKw(reqV, reqA, isAc, charger.connectorType);
 
     let currentEnergy = prev.session_energy_kwh || 0.0;
@@ -806,6 +822,8 @@ class Database {
     charger.telemetry = {
       charger_voltage: +v.toFixed(1),
       charger_current: +a.toFixed(1),
+      dc_voltage: +dcV.toFixed(1),
+      dc_current: +dcA.toFixed(1),
       battery_soc: +Math.min(100, Math.max(0, soc)).toFixed(1),
       battery_req_voltage: +reqV.toFixed(1),
       battery_req_current: +reqA.toFixed(1),
