@@ -182,3 +182,39 @@ To run the terminal PCB simulator test:
 ```bash
 npm run simulate
 ```
+
+---
+
+## 📮 Postman Testing
+
+A ready-to-import Postman collection is included in this repository:
+- **Collection File**: `postman_collection.json`
+
+### Import into Postman:
+1. Open **Postman** and click **Import**.
+2. Drag and drop `postman_collection.json` from the repository root.
+3. Select any request (e.g. `1. Telemetry - AC Active Charging`) and click **Send**.
+
+### Ready-to-Use Payload for AC Charging:
+```http
+POST http://localhost:3000/api/telemetry
+Headers:
+  Content-Type: application/json
+  x-api-key: evc_live_0d975f1a5360db2917e90715
+```
+```json
+{
+  "apiKey": "evc_live_0d975f1a5360db2917e90715",
+  "status": "CHARGING",
+  "charging_mode": "AC STANDARD",
+  "battery_connected": true,
+  "power_kw": 11.0,
+  "dc_voltage": 380.5,
+  "dc_current": 28.9,
+  "battery_soc": 62.5,
+  "charger_voltage": 230.0,
+  "charger_current": 32.0,
+  "session_energy_kwh": 5.25,
+  "session_duration_min": 28.5
+}
+```

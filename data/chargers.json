@@ -26,25 +26,27 @@
     "maxCurrent": 350,
     "connectorType": "Custom CAN-Bus Lab Bench",
     "status": "OFFLINE",
-    "batteryConnected": false,
-    "lastSeen": 1793016767141,
+    "batteryConnected": true,
+    "lastSeen": 1793114525019,
     "telemetry": {
-      "charger_voltage": 418.5,
+      "charger_voltage": 410,
       "charger_current": 0,
-      "battery_soc": 75,
+      "dc_voltage": 410,
+      "dc_current": 180,
+      "battery_soc": 40,
       "battery_req_voltage": 425,
       "battery_req_current": 160,
-      "battery_temp": 25,
-      "charger_temp": 28,
+      "battery_temp": 34.2,
+      "charger_temp": 41,
       "status": "OFFLINE",
-      "charging_mode": "STANDBY // READY",
+      "charging_mode": "SPORT PLUS // CC FAST",
       "fault_code": "NONE",
-      "battery_connected": false,
-      "session_energy_kwh": 0,
-      "session_duration_min": 0,
+      "battery_connected": true,
+      "session_energy_kwh": 0.362,
+      "session_duration_min": 1,
       "power_kw": 0,
       "target_power_kw": 68,
-      "timestamp": 1793016767141
+      "timestamp": 1793114525019
     },
     "history": [
       {
@@ -208,19 +210,54 @@
         "battery_req_voltage": 425,
         "battery_req_current": 160,
         "power_kw": 62.02
+      },
+      {
+        "timestamp": 1793114405058,
+        "charger_voltage": 410,
+        "charger_current": 180,
+        "battery_soc": 40,
+        "battery_req_voltage": 425,
+        "battery_req_current": 160,
+        "power_kw": 62
+      },
+      {
+        "timestamp": 1793114423839,
+        "charger_voltage": 410,
+        "charger_current": 180,
+        "battery_soc": 40,
+        "battery_req_voltage": 425,
+        "battery_req_current": 160,
+        "power_kw": 22
+      },
+      {
+        "timestamp": 1793114435782,
+        "charger_voltage": 410,
+        "charger_current": 180,
+        "battery_soc": 40,
+        "battery_req_voltage": 425,
+        "battery_req_current": 160,
+        "power_kw": 22
+      },
+      {
+        "timestamp": 1793114459934,
+        "charger_voltage": 410,
+        "charger_current": 180,
+        "battery_soc": 40,
+        "battery_req_voltage": 425,
+        "battery_req_current": 160,
+        "power_kw": 22
+      },
+      {
+        "timestamp": 1793114525019,
+        "charger_voltage": 410,
+        "charger_current": 180,
+        "battery_soc": 40,
+        "battery_req_voltage": 425,
+        "battery_req_current": 160,
+        "power_kw": 22
       }
     ],
-    "pendingCommands": [
-      {
-        "id": "cmd_1793016767135_26ce",
-        "command": "AUTHENTICATE_BATTERY_CONNECT",
-        "params": {
-          "action": "START_CHARGING",
-          "requestedAt": 1793016767135
-        },
-        "timestamp": 1793016767135
-      }
-    ]
+    "pendingCommands": []
   },
   {
     "id": "chg_mvhont6j_u81x",
@@ -251,27 +288,27 @@
     "maxCurrent": 32,
     "maxPowerKw": 23,
     "connectorType": "Type 2 AC (22 kW Three-Phase 415V / 32A)",
-    "status": "OFFLINE",
-    "lastSeen": 1793110812159,
+    "status": "ONLINE",
+    "lastSeen": 1793114576490,
     "telemetry": {
       "charger_voltage": 230,
       "charger_current": 0,
-      "dc_voltage": 412.3,
-      "dc_current": 28.5,
-      "battery_soc": 68.2,
+      "dc_voltage": 380.5,
+      "dc_current": 28.9,
+      "battery_soc": 62.5,
       "battery_req_voltage": 415,
       "battery_req_current": 32,
       "battery_temp": 25,
       "charger_temp": 25,
-      "status": "OFFLINE",
-      "charging_mode": "OFFLINE // NO PCB CONNECTED",
+      "status": "ONLINE",
+      "charging_mode": "STANDBY // READY",
       "fault_code": "NONE",
-      "battery_connected": false,
+      "battery_connected": true,
       "session_energy_kwh": 0.952,
       "session_duration_min": 4.5,
       "power_kw": 0,
       "target_power_kw": 23,
-      "timestamp": 1793110812159
+      "timestamp": 1793114576490
     },
     "history": [
       {
@@ -309,18 +346,27 @@
         "battery_req_voltage": 415,
         "battery_req_current": 32,
         "power_kw": 11.75
+      },
+      {
+        "timestamp": 1793114526884,
+        "charger_voltage": 230,
+        "charger_current": 32,
+        "battery_soc": 62.5,
+        "battery_req_voltage": 415,
+        "battery_req_current": 32,
+        "power_kw": 11
       }
     ],
-    "batteryConnected": false,
+    "batteryConnected": true,
     "pendingCommands": [
       {
-        "id": "cmd_1793108717581_rgam",
+        "id": "cmd_1793114572304_0yhj",
         "command": "AUTHENTICATE_BATTERY_CONNECT",
         "params": {
           "action": "START_CHARGING",
-          "requestedAt": 1793108717581
+          "requestedAt": 1793114572303
         },
-        "timestamp": 1793108717581
+        "timestamp": 1793114572304
       }
     ]
   }

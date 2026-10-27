@@ -1,0 +1,255 @@
+{
+  "info": {
+    "name": "SAAPHZONE EV CMS - Telemetry & Testing Collection",
+    "description": "Ready-to-use Postman collection for testing the SAAPHZONE EV Charger Telemetry Ingestion API, AC & DC charging sessions, battery connection states, and admin authentication.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "cloudUrl",
+      "value": "https://cms-backend-0bce.onrender.com",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "evc_live_0d975f1a5360db2917e90715",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Telemetry - AC Active Charging (11 kW, Battery Connected)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"apiKey\": \"{{apiKey}}\",\n  \"status\": \"CHARGING\",\n  \"charging_mode\": \"AC STANDARD\",\n  \"battery_connected\": true,\n  \"power_kw\": 11.0,\n  \"dc_voltage\": 380.5,\n  \"dc_current\": 28.9,\n  \"battery_soc\": 62.5,\n  \"battery_req_voltage\": 400.0,\n  \"battery_req_current\": 32.0,\n  \"charger_voltage\": 230.0,\n  \"charger_current\": 48.0,\n  \"session_energy_kwh\": 5.25,\n  \"session_duration_min\": 28.5\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/telemetry",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "telemetry"
+          ]
+        },
+        "description": "Simulates active AC charging at 11 kW with battery connected. Sends real-time power_kw, DC voltage, DC current, and SOC."
+      }
+    },
+    {
+      "name": "2. Telemetry - AC High Power (22 kW, Battery Connected)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"apiKey\": \"{{apiKey}}\",\n  \"status\": \"CHARGING\",\n  \"charging_mode\": \"AC FAST 22KW\",\n  \"battery_connected\": true,\n  \"power_kw\": 22.0,\n  \"dc_voltage\": 415.0,\n  \"dc_current\": 53.0,\n  \"battery_soc\": 84.0,\n  \"battery_req_voltage\": 420.0,\n  \"battery_req_current\": 60.0,\n  \"charger_voltage\": 400.0,\n  \"charger_current\": 32.0,\n  \"session_energy_kwh\": 12.80,\n  \"session_duration_min\": 35.0\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/telemetry",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "telemetry"
+          ]
+        },
+        "description": "Simulates full 22 kW AC 3-phase charging with battery connected."
+      }
+    },
+    {
+      "name": "3. Telemetry - AC Battery Disconnected (Interlock Open)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"apiKey\": \"{{apiKey}}\",\n  \"status\": \"ONLINE\",\n  \"charging_mode\": \"STANDBY // NO BATTERY\",\n  \"battery_connected\": false,\n  \"power_kw\": 0.0,\n  \"dc_voltage\": 0.0,\n  \"dc_current\": 0.0,\n  \"battery_soc\": 0.0,\n  \"battery_req_voltage\": 0.0,\n  \"battery_req_current\": 0.0,\n  \"charger_voltage\": 230.0,\n  \"charger_current\": 0.0,\n  \"session_energy_kwh\": 0.0,\n  \"session_duration_min\": 0.0\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/telemetry",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "telemetry"
+          ]
+        },
+        "description": "Simulates PCB reporting battery disconnected or interlock open. Dashboard immediately shows BATTERY HARDWARE: DISCONNECTED."
+      }
+    },
+    {
+      "name": "4. Telemetry - AC Session Complete / 100% SOC (Held)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"apiKey\": \"{{apiKey}}\",\n  \"status\": \"CHARGING\",\n  \"charging_mode\": \"AC TRICKLE // FLOAT\",\n  \"battery_connected\": true,\n  \"power_kw\": 0.8,\n  \"dc_voltage\": 418.0,\n  \"dc_current\": 1.9,\n  \"battery_soc\": 100.0,\n  \"battery_req_voltage\": 420.0,\n  \"battery_req_current\": 2.0,\n  \"charger_voltage\": 230.0,\n  \"charger_current\": 3.5,\n  \"session_energy_kwh\": 18.45,\n  \"session_duration_min\": 55.0\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/telemetry",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "telemetry"
+          ]
+        },
+        "description": "Simulates 100% fully charged battery holding float telemetry."
+      }
+    },
+    {
+      "name": "5. Telemetry - Cloud Test (Render Backend)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"apiKey\": \"{{apiKey}}\",\n  \"status\": \"CHARGING\",\n  \"charging_mode\": \"AC STANDARD\",\n  \"battery_connected\": true,\n  \"power_kw\": 7.4,\n  \"dc_voltage\": 375.0,\n  \"dc_current\": 19.7,\n  \"battery_soc\": 55.0,\n  \"session_energy_kwh\": 3.2,\n  \"session_duration_min\": 18.0\n}"
+        },
+        "url": {
+          "raw": "{{cloudUrl}}/api/telemetry",
+          "host": [
+            "{{cloudUrl}}"
+          ],
+          "path": [
+            "api",
+            "telemetry"
+          ]
+        },
+        "description": "Send telemetry directly to the Render cloud deployment."
+      }
+    },
+    {
+      "name": "6. Auth - Admin Login (password123)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "description": "Tests admin login with password123."
+      }
+    },
+    {
+      "name": "7. Auth - Admin Login (saaphzone123)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"saaphzone123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "description": "Tests admin login with saaphzone123."
+      }
+    },
+    {
+      "name": "8. Chargers - List All Chargers",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/chargers",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "chargers"
+          ]
+        },
+        "description": "Fetches all chargers and their latest telemetry and connection status."
+      }
+    }
+  ]
+}

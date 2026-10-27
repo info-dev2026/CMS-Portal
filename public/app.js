@@ -1770,12 +1770,12 @@ function updateCockpitTelemetry() {
     if (dom.cockpitBattTempRow) dom.cockpitBattTempRow.style.display = 'flex';
     if (dom.cockpitChgTempRow) dom.cockpitChgTempRow.style.display = 'flex';
 
-    // Temperatures
-    dom.cockpitBattTempVal.textContent = `${bTemp.toFixed(1)} °C`;
-    dom.cockpitBattTempBar.style.width = `${Math.max(4, Math.min(100, (bTemp / 75) * 100))}%`;
+    // Temperatures (if elements present)
+    if (dom.cockpitBattTempVal) dom.cockpitBattTempVal.textContent = `${bTemp.toFixed(1)} °C`;
+    if (dom.cockpitBattTempBar) dom.cockpitBattTempBar.style.width = `${Math.max(4, Math.min(100, (bTemp / 75) * 100))}%`;
 
-    dom.cockpitChgTempVal.textContent = `${chgTemp.toFixed(1)} °C`;
-    dom.cockpitChgTempBar.style.width = `${Math.max(4, Math.min(100, (chgTemp / 80) * 100))}%`;
+    if (dom.cockpitChgTempVal) dom.cockpitChgTempVal.textContent = `${chgTemp.toFixed(1)} °C`;
+    if (dom.cockpitChgTempBar) dom.cockpitChgTempBar.style.width = `${Math.max(4, Math.min(100, (chgTemp / 80) * 100))}%`;
   }
 
   dom.cockpitStatusBadge.textContent = charger.status;
