@@ -27,7 +27,7 @@
     "connectorType": "Custom CAN-Bus Lab Bench",
     "status": "OFFLINE",
     "batteryConnected": true,
-    "lastSeen": 1793114525019,
+    "lastSeen": 1793114773203,
     "telemetry": {
       "charger_voltage": 410,
       "charger_current": 0,
@@ -42,11 +42,11 @@
       "charging_mode": "SPORT PLUS // CC FAST",
       "fault_code": "NONE",
       "battery_connected": true,
-      "session_energy_kwh": 0.362,
-      "session_duration_min": 1,
+      "session_energy_kwh": 1.878,
+      "session_duration_min": 5.1,
       "power_kw": 0,
       "target_power_kw": 68,
-      "timestamp": 1793114525019
+      "timestamp": 1793114773203
     },
     "history": [
       {
@@ -255,6 +255,24 @@
         "battery_req_voltage": 425,
         "battery_req_current": 160,
         "power_kw": 22
+      },
+      {
+        "timestamp": 1793114770870,
+        "charger_voltage": 410,
+        "charger_current": 180,
+        "battery_soc": 40,
+        "battery_req_voltage": 425,
+        "battery_req_current": 160,
+        "power_kw": 22
+      },
+      {
+        "timestamp": 1793114773203,
+        "charger_voltage": 410,
+        "charger_current": 180,
+        "battery_soc": 40,
+        "battery_req_voltage": 425,
+        "battery_req_current": 160,
+        "power_kw": 22
       }
     ],
     "pendingCommands": []
@@ -288,27 +306,27 @@
     "maxCurrent": 32,
     "maxPowerKw": 23,
     "connectorType": "Type 2 AC (22 kW Three-Phase 415V / 32A)",
-    "status": "ONLINE",
-    "lastSeen": 1793114576490,
+    "status": "OFFLINE",
+    "lastSeen": 1793116525921,
     "telemetry": {
       "charger_voltage": 230,
       "charger_current": 0,
       "dc_voltage": 380.5,
       "dc_current": 28.9,
       "battery_soc": 62.5,
-      "battery_req_voltage": 415,
+      "battery_req_voltage": 400,
       "battery_req_current": 32,
       "battery_temp": 25,
       "charger_temp": 25,
-      "status": "ONLINE",
-      "charging_mode": "STANDBY // READY",
+      "status": "OFFLINE",
+      "charging_mode": "AC STANDARD",
       "fault_code": "NONE",
       "battery_connected": true,
-      "session_energy_kwh": 0.952,
+      "session_energy_kwh": 5.25,
       "session_duration_min": 4.5,
       "power_kw": 0,
-      "target_power_kw": 23,
-      "timestamp": 1793114576490
+      "target_power_kw": 22.17,
+      "timestamp": 1793116525921
     },
     "history": [
       {
@@ -355,19 +373,54 @@
         "battery_req_voltage": 415,
         "battery_req_current": 32,
         "power_kw": 11
+      },
+      {
+        "timestamp": 1793115495198,
+        "charger_voltage": 230,
+        "charger_current": 48,
+        "battery_soc": 55,
+        "battery_req_voltage": 400,
+        "battery_req_current": 32,
+        "power_kw": 75
+      },
+      {
+        "timestamp": 1793115554658,
+        "charger_voltage": 230,
+        "charger_current": 48,
+        "battery_soc": 25,
+        "battery_req_voltage": 400,
+        "battery_req_current": 32,
+        "power_kw": 75
+      },
+      {
+        "timestamp": 1793115595848,
+        "charger_voltage": 230,
+        "charger_current": 48,
+        "battery_soc": 65,
+        "battery_req_voltage": 400,
+        "battery_req_current": 32,
+        "power_kw": 24.6
+      },
+      {
+        "timestamp": 1793116458707,
+        "charger_voltage": 230,
+        "charger_current": 48,
+        "battery_soc": 65,
+        "battery_req_voltage": 400,
+        "battery_req_current": 32,
+        "power_kw": 24.6
+      },
+      {
+        "timestamp": 1793116525921,
+        "charger_voltage": 230,
+        "charger_current": 48,
+        "battery_soc": 62.5,
+        "battery_req_voltage": 400,
+        "battery_req_current": 32,
+        "power_kw": 11
       }
     ],
     "batteryConnected": true,
-    "pendingCommands": [
-      {
-        "id": "cmd_1793114572304_0yhj",
-        "command": "AUTHENTICATE_BATTERY_CONNECT",
-        "params": {
-          "action": "START_CHARGING",
-          "requestedAt": 1793114572303
-        },
-        "timestamp": 1793114572304
-      }
-    ]
+    "pendingCommands": []
   }
 ]

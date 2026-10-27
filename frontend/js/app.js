@@ -1613,14 +1613,15 @@ function updateCockpitTelemetry() {
   }
 
   const t = charger.telemetry || {};
-  const v = Number(t.charger_voltage || 0);
-  const a = Number(t.charger_current || 0);
-  const reqV = Number(t.battery_req_voltage || 0);
-  const reqA = Number(t.battery_req_current || 0);
-  const soc = Number(t.battery_soc || 0);
-  const pKw = Number(t.power_kw || 0);
+  const v = Number(t.charger_voltage !== undefined && t.charger_voltage !== null ? t.charger_voltage : (t.voltage || 0));
+  const a = Number(t.charger_current !== undefined && t.charger_current !== null ? t.charger_current : (t.current || 0));
+  const reqV = Number(t.battery_req_voltage !== undefined && t.battery_req_voltage !== null ? t.battery_req_voltage : (t.req_voltage || 0));
+  const reqA = Number(t.battery_req_current !== undefined && t.battery_req_current !== null ? t.battery_req_current : (t.req_current || 0));
+  const soc = Number(t.battery_soc !== undefined && t.battery_soc !== null ? t.battery_soc : (t.soc || 0));
+  const pKw = Number(t.power_kw !== undefined && t.power_kw !== null ? t.power_kw : (t.kw || 0));
   const bTemp = Number(t.battery_temp || 25);
   const chgTemp = Number(t.charger_temp || 25);
+  const sessionKwh = Number(t.session_energy_kwh !== undefined && t.session_energy_kwh !== null ? t.session_energy_kwh : (charger.stats?.totalEnergyKwh || 0));
 
   // Prominent Battery Level Status (if present)
   if (dom.battButtonPercent) dom.battButtonPercent.textContent = `${soc.toFixed(1)}%`;
@@ -1723,8 +1724,8 @@ function updateCockpitTelemetry() {
     if (dom.cockpitVName) dom.cockpitVName.textContent = 'DC VOLT';
     if (dom.cockpitAName) dom.cockpitAName.textContent = 'DC AMP';
 
-    const dcV = Number(t.dc_voltage !== undefined && t.dc_voltage !== null ? t.dc_voltage : v);
-    const dcA = Number(t.dc_current !== undefined && t.dc_current !== null ? t.dc_current : a);
+    const dcV = Number(t.dc_voltage !== undefined && t.dc_voltage !== null ? t.dc_voltage : (t.dc_volt !== undefined && t.dc_volt !== null ? t.dc_volt : v));
+    const dcA = Number(t.dc_current !== undefined && t.dc_current !== null ? t.dc_current : (t.dc_amp !== undefined && t.dc_amp !== null ? t.dc_amp : a));
 
     const maxV = charger.maxVoltage || 500;
     dom.cockpitActualV.textContent = `${dcV.toFixed(1)} V`;
