@@ -251,11 +251,11 @@
     "maxCurrent": 32,
     "maxPowerKw": 23,
     "connectorType": "Type 2 AC (22 kW Three-Phase 415V / 32A)",
-    "status": "CHARGING",
+    "status": "OFFLINE",
     "lastSeen": 1793110812159,
     "telemetry": {
       "charger_voltage": 230,
-      "charger_current": 32,
+      "charger_current": 0,
       "dc_voltage": 412.3,
       "dc_current": 28.5,
       "battery_soc": 68.2,
@@ -263,13 +263,13 @@
       "battery_req_current": 32,
       "battery_temp": 25,
       "charger_temp": 25,
-      "status": "CHARGING",
-      "charging_mode": "AC SMART // LEVEL 2",
+      "status": "OFFLINE",
+      "charging_mode": "OFFLINE // NO PCB CONNECTED",
       "fault_code": "NONE",
-      "battery_connected": true,
+      "battery_connected": false,
       "session_energy_kwh": 0.952,
       "session_duration_min": 4.5,
-      "power_kw": 11.75,
+      "power_kw": 0,
       "target_power_kw": 23,
       "timestamp": 1793110812159
     },
@@ -311,7 +311,7 @@
         "power_kw": 11.75
       }
     ],
-    "batteryConnected": true,
+    "batteryConnected": false,
     "pendingCommands": [
       {
         "id": "cmd_1793108717581_rgam",

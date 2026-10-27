@@ -1047,16 +1047,11 @@ function renderVoltageCell(c) {
   return `<strong>${v} V</strong> <span style="color:var(--primary-cyan); font-size:0.75rem;">(Req: ${reqV}V)</span>`;
 }
 
-// AC chargers: show delivered energy (kWh) instead of power (kW)
+// Power cell: real-time power in kW sent directly from the PCB
 function renderPowerCell(c) {
   const t = c.telemetry || {};
-  const pKw = Number(t.power_kw || 0);
-  if (isAcCharger(c)) {
-    const kwh = Number(t.session_energy_kwh || 0).toFixed(2);
-    const heldTag = isAcSessionHeld(c) ? ' • 🔒 Held' : '';
-    return `<strong style="color:var(--primary-cyan); font-size:1rem;">${kwh} kWh</strong> <span style="color:var(--text-muted); font-size:0.75rem;">${heldTag}</span>`;
-  }
-  return `<strong style="color:var(--primary-cyan); font-size:1rem;">${pKw.toFixed(1)} kW</strong>`;
+  const pKw = Number(t.power_kw !== undefined && t.power_kw !== null ? t.power_kw : 0);
+  return `<strong style="color:var(--primary-cyan); font-size:1rem;">${pKw.toFixed(2)} kW</strong>`;
 }
 
 function renderDashboardTable() {
@@ -1650,12 +1645,11 @@ function updateCockpitTelemetry() {
     }
   }
   const chargerIsAc = isAcCharger(charger);
-  const sessionKwh = Number(t.session_energy_kwh || 0);
-  const heldLabel = isAcSessionHeld(charger) ? ' (Held)' : '';
-  // AC chargers: headline value is delivered energy in kWh
-  dom.dialPowerValue.textContent = chargerIsAc ? sessionKwh.toFixed(2) : pKw.toFixed(1);
+  // Headline value in center dial: Real-time power in kW sent directly from the PCB (NOT calculated)
+  const pcbKw = Number(t.power_kw !== undefined && t.power_kw !== null ? t.power_kw : (pKw || 0));
+  dom.dialPowerValue.textContent = pcbKw.toFixed(2);
   const dialUnitEl = dom.dialKwUnit || document.getElementById('dialKwUnit');
-  if (dialUnitEl) dialUnitEl.textContent = chargerIsAc ? `kWh${heldLabel}` : 'kW';
+  if (dialUnitEl) dialUnitEl.textContent = 'kW';
   dom.dialSecondaryMetrics.textContent = `${v.toFixed(1)} V • ${a.toFixed(1)} A`;
   dom.dialModePillText.textContent = t.charging_mode || (chargerIsAc ? 'AC STANDARD' : 'SPORT PLUS');
   dom.dialStatusGear.textContent = charger.status;
@@ -1697,10 +1691,10 @@ function updateCockpitTelemetry() {
     dom.saaphDialProgressArc.style.strokeDashoffset = targetOffset;
   }
 
-  // Left Panel
-  dom.cockpitLeftPowerNum.textContent = chargerIsAc ? sessionKwh.toFixed(2) : pKw.toFixed(1);
+  // Left Panel: Real-time power in kW sent directly from the PCB
+  dom.cockpitLeftPowerNum.textContent = pcbKw.toFixed(2);
   const leftUnitEl = dom.cockpitLeftPowerUnit || document.getElementById('cockpitLeftPowerUnit');
-  if (leftUnitEl) leftUnitEl.textContent = chargerIsAc ? 'kWh' : 'kW';
+  if (leftUnitEl) leftUnitEl.textContent = 'kW';
   dom.cockpitLeftModeSub.textContent = chargerIsAc
     ? `${t.charging_mode || 'AC STANDARD'} // ${charger.maxVoltage}V AC MAINS`
     : `${t.charging_mode || 'SPORT PLUS'} // ${charger.maxVoltage}V DC BUS`;
@@ -1926,9 +1920,8 @@ function renderChargePointsCards() {
       </div>
 
       <div class="chg-quick-grid">
-        ${isAcCharger(c)
-          ? `<div class="q-cell"><span class="q-lbl">ENERGY${isAcSessionHeld(c) ? ' 🔒' : ''}</span><span class="q-val cyan">${Number(t.session_energy_kwh || 0).toFixed(2)} kWh</span></div>`
-          : `<div class="q-cell"><span class="q-lbl">POWER</span><span class="q-val cyan">${pKw} kW</span></div>`}
+        <div class="q-cell"><span class="q-lbl">POWER</span><span class="q-val cyan">${Number(t.power_kw || 0).toFixed(2)} kW</span></div>
+        <div class="q-cell"><span class="q-lbl">ENERGY</span><span class="q-val">${Number(t.session_energy_kwh || 0).toFixed(2)} kWh</span></div>
         <div class="q-cell"><span class="q-lbl">BATTERY SoC</span><span class="q-val">🔋 ${soc}%</span></div>
         <div class="q-cell"><span class="q-lbl">MAX V/A</span><span class="q-val">${c.maxVoltage}V / ${c.maxCurrent}A</span></div>
       </div>
