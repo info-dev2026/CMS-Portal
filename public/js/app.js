@@ -637,17 +637,6 @@ function initAuth() {
     dom.btnTogglePwd.textContent = isPass ? '🔒' : '👁️';
   };
 
-  const btnQuickFillAdmin = document.getElementById('btnQuickFillAdmin');
-  if (btnQuickFillAdmin) {
-    btnQuickFillAdmin.onclick = () => {
-      dom.loginUsername.value = 'admin';
-      dom.loginPassword.value = 'password123';
-      dom.tabAdminLogin?.classList.add('active');
-      dom.tabChargerLogin?.classList.remove('active');
-      dom.lblLoginUser.textContent = 'Administrator Username';
-      showToast('🔑 Filled Admin: admin / password123');
-    };
-  }
 
   dom.tabAdminLogin.onclick = () => {
     dom.tabAdminLogin.classList.add('active');
@@ -1728,8 +1717,6 @@ function updateCockpitTelemetry() {
   dom.cockpitSocVal.textContent = `${soc.toFixed(1)} %`;
   dom.cockpitSocBar.style.width = `${Math.max(2, soc)}%`;
 
-  // For AC: power in kW is sent directly from the PCB (NOT calculated)
-  const pcbKw = Number(t.power_kw !== undefined && t.power_kw !== null ? t.power_kw : (pKw || 0));
 
   if (chargerIsAc) {
     // AC Charger: DC amp, DC Volt, SOC, and kW (sent from PCB, not calculated)
