@@ -55,19 +55,18 @@ function broadcast(data) {
 
 // Hardware PCB Heartbeat Watchdog:
 // Verifies whether a PCB authorizing the charger's auth key is actively streaming.
-// If no packet received within 25 seconds, marks charger OFFLINE and battery link DISCONNECTED.
+// 90-second timeout window accommodates standard IoT/microcontroller intervals (30s, 60s) and network latency.
 setInterval(() => {
   try {
     const now = Date.now();
+    const pcbHeartbeatTimeout = 90000;
     let hasChanges = false;
     db.getAllChargers().forEach(charger => {
-      const isOnline = Boolean(charger.lastSeen && (now - charger.lastSeen <= 25000));
-      if (!isOnline && (charger.status !== 'OFFLINE' || charger.batteryConnected !== false)) {
+      const isOnline = Boolean(charger.lastSeen && (now - charger.lastSeen <= pcbHeartbeatTimeout));
+      if (!isOnline && charger.status !== 'OFFLINE') {
         charger.status = 'OFFLINE';
-        charger.batteryConnected = false;
         if (!charger.telemetry) charger.telemetry = {};
         charger.telemetry.status = 'OFFLINE';
-        charger.telemetry.battery_connected = false;
         charger.telemetry.power_kw = 0.0;
         charger.telemetry.charger_current = 0.0;
         hasChanges = true;

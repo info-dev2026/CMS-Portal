@@ -70,39 +70,47 @@ A comprehensive, enterprise-grade **EV Charging Station Management System (CSMS)
 
 ## 🔌 Hardware PCB Integration Guide
 
-### HTTP POST Endpoint
+### HTTP POST Endpoints
 - **Method**: `POST`
-- **URL**: `http://<SERVER_IP>:3000/api/telemetry`
+- **Cloud Backend (Render)**: `https://cms-backend-0bce.onrender.com/api/telemetry`
+- **Cloud Portal (Vercel Proxy)**: `https://cms-portal-lyart.vercel.app/api/telemetry`
+- **Local Dev Server**: `http://<YOUR_LOCAL_IP>:3000/api/telemetry`
 - **Headers**:
   - `Content-Type: application/json`
-  - `x-api-key: <YOUR_CHARGER_API_KEY>`
+  - `x-api-key: <YOUR_CHARGER_API_KEY>` (e.g. `evc_live_0d975f1a5360db2917e90715`)
 
 ### JSON Telemetry Payload
 ```json
 {
-  "charger_voltage": 418.5,
-  "charger_current": 148.2,
-  "battery_soc": 78.0,
-  "battery_req_voltage": 425.0,
-  "battery_req_current": 160.0,
-  "battery_temp": 34.2,
-  "charger_temp": 41.5,
-  "status": "CHARGING"
+  "charger_voltage": 230.0,
+  "charger_current": 16.0,
+  "battery_soc": 60.0,
+  "battery_req_voltage": 415.0,
+  "battery_req_current": 32.0,
+  "battery_temp": 28.5,
+  "charger_temp": 32.0,
+  "battery_connected": true,
+  "status": "ONLINE"
 }
 ```
+> **Note on Battery Connection:**
+> The server automatically detects battery connection if `battery_connected: true`, or if the PCB reports battery telemetry (`battery_soc > 0`, requested voltage/current, etc.). Send `"battery_connected": false` only when the vehicle/battery physical interlock is open.
 
 ---
 
-### ESP32 / Arduino (C++) Code Snippet
+### ESP32 / Arduino (C++) Code Snippet (HTTPS & HTTP Ready)
 ```cpp
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
 
 const char* ssid = "YOUR_WIFI_SSID";
 const char* password = "YOUR_WIFI_PASSWORD";
-const char* serverUrl = "http://YOUR_SERVER_IP:3000/api/telemetry";
-const char* pcbKey = "evc_live_9f82d1c470be31980a32e1"; // Generated Key for your charger
+
+// Cloud Endpoint (Use https:// for cloud, or http://<LOCAL_IP>:3000 for local test)
+const char* serverUrl = "https://cms-backend-0bce.onrender.com/api/telemetry";
+const char* pcbKey = "evc_live_0d975f1a5360db2917e90715"; // Your Auth Key
 
 void setup() {
   Serial.begin(115200);
@@ -114,10 +122,13 @@ void setup() {
   Serial.println("\nWiFi Connected to SAAPHZONE CSMS!");
 }
 
-void sendTelemetry(float vOut, float aOut, float soc, float vReq, float aReq, float bTemp) {
+void sendTelemetry(float vOut, float aOut, float soc, float vReq, float aReq, float bTemp, bool isBattConnected) {
   if (WiFi.status() == WL_CONNECTED) {
+    WiFiClientSecure client;
+    client.setInsecure(); // Required for HTTPS on ESP32 without root cert bundle
     HTTPClient http;
-    http.begin(serverUrl);
+
+    http.begin(client, serverUrl);
     http.addHeader("Content-Type", "application/json");
     http.addHeader("x-api-key", pcbKey);
 
@@ -128,7 +139,8 @@ void sendTelemetry(float vOut, float aOut, float soc, float vReq, float aReq, fl
     doc["battery_req_voltage"] = vReq;
     doc["battery_req_current"] = aReq;
     doc["battery_temp"] = bTemp;
-    doc["status"] = "CHARGING";
+    doc["battery_connected"] = isBattConnected;
+    doc["status"] = isBattConnected ? "ONLINE" : "STANDBY";
 
     String requestBody;
     serializeJson(doc, requestBody);

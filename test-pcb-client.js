@@ -9,10 +9,13 @@
 
 const http = require('http');
 
-// Config: Default Key for Bay 01 / Active Fleet Charger
-const API_KEY = process.env.PCB_KEY || 'evc_live_959f59a8a1f8a7e728815256';
-const PORT = process.env.PORT || 3000;
-const HOST = 'localhost';
+// Config: Can test locally or against live cloud backend:
+// node test-pcb-client.js --cloud
+const isCloud = process.argv.includes('--cloud');
+const API_KEY = process.env.PCB_KEY || (process.argv.find(a => a.startsWith('evc_live_')) || 'evc_live_0d975f1a5360db2917e90715');
+const PORT = process.env.PORT || (isCloud ? 443 : 3000);
+const HOST = isCloud ? 'cms-backend-0bce.onrender.com' : (process.env.HOST || 'localhost');
+const clientLib = isCloud ? require('https') : require('http');
 
 // Battery connection flag: can be set via --disconnected / --connected argument or env variable
 const isDisconnectedArg = process.argv.includes('--disconnected') || process.env.BATTERY_CONNECTED === 'false';
@@ -83,7 +86,7 @@ function sendPacket() {
     }
   };
 
-  const req = http.request(options, (res) => {
+  const req = clientLib.request(options, (res) => {
     let body = '';
     res.on('data', chunk => body += chunk);
     res.on('end', () => {

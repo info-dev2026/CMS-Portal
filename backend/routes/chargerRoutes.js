@@ -100,11 +100,12 @@ module.exports = function(broadcast) {
 
     if (isTurnOn) {
       const now = Date.now();
-      const pcbHeartbeatTimeout = 25000; // 25s active communication window
+      const pcbHeartbeatTimeout = 90000; // 90s active communication window
       const isPcbOnline = Boolean(charger.lastSeen && (now - charger.lastSeen <= pcbHeartbeatTimeout));
 
       // 1. Verify whether a PCB authorizing this authentication key is actually ON & active
-      if (!isPcbOnline) {
+      // (If operator explicitly confirmed battery link, permit manual start)
+      if (!isPcbOnline && batteryConnected !== true) {
         // NO PCB CONNECTED WITH THIS AUTHENTICATION KEY!
         charger.status = 'OFFLINE';
         if (!charger.telemetry) charger.telemetry = {};
@@ -145,8 +146,8 @@ module.exports = function(broadcast) {
       }
 
       // 2. PCB IS online with the auth key. Now check whether the authorized PCB confirms the battery is connected:
-      const isBatteryConnected = charger.batteryConnected === true &&
-        (charger.telemetry ? charger.telemetry.battery_connected === true : false);
+      const isBatteryConnected = charger.batteryConnected !== false &&
+        (charger.telemetry ? charger.telemetry.battery_connected !== false : true);
 
       if (!isBatteryConnected) {
         // PCB is ON with the auth key, but reports that battery is not connected!

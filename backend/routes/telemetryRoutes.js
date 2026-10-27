@@ -36,7 +36,8 @@ module.exports = function(broadcast) {
         battery_req_current: 160.0,
         power_kw: 62.0,
         battery_temp: 34.2,
-        charger_temp: 28.5
+        charger_temp: 28.5,
+        battery_connected: true
       }
     });
   };

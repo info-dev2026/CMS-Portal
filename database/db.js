@@ -248,20 +248,18 @@ class Database {
           }
 
           // Strict PCB hardware authentication check:
-          // Battery connection comes from whether the PCB authorizing this auth key is ON & streaming
-          const isPcbActive = Boolean(c.lastSeen && (now - c.lastSeen <= 25000));
+          // PCB active window extended to 90s to accommodate standard IoT/microcontroller telemetry intervals
+          const isPcbActive = Boolean(c.lastSeen && (now - c.lastSeen <= 90000));
           if (!isPcbActive) {
-            c.batteryConnected = false;
             c.status = 'OFFLINE';
             if (c.telemetry) {
               c.telemetry.status = 'OFFLINE';
-              c.telemetry.battery_connected = false;
               c.telemetry.power_kw = 0.0;
               c.telemetry.charger_current = 0.0;
             }
           } else {
             if (c.batteryConnected === undefined) {
-              c.batteryConnected = Boolean(c.telemetry && c.telemetry.battery_connected);
+              c.batteryConnected = Boolean(c.telemetry && c.telemetry.battery_connected !== false);
             }
           }
           return c;
@@ -558,7 +556,7 @@ class Database {
     return charger;
   }
 
-  isPcbOnline(idOrCharger, timeoutMs = 25000) {
+  isPcbOnline(idOrCharger, timeoutMs = 90000) {
     const charger = typeof idOrCharger === 'string' ? this.getChargerById(idOrCharger) : idOrCharger;
     if (!charger || !charger.lastSeen) return false;
     return (Date.now() - charger.lastSeen) <= timeoutMs;
@@ -657,10 +655,42 @@ class Database {
     const rawReqA = payload.battery_req_current ?? payload.req_current ?? payload.battery_current_req ?? payload.reqA ?? payload.target_current;
     const reqA = rawReqA !== undefined && rawReqA !== null && !isNaN(Number(rawReqA)) ? Number(rawReqA) : (prev.battery_req_current || (isAc ? 32.0 : 160.0));
 
-    // Hardware PCB Battery Connection detection (Pilot / BMS / CAN-Bus state)
-    const rawBattConn = payload.battery_connected ?? payload.batteryConnected ?? payload.battery_present ?? payload.ev_connected;
+    // Hardware PCB Battery Connection detection (Pilot / BMS / CAN-Bus state / Telemetry signals)
+    const rawBattConn = payload.battery_connected ?? payload.batteryConnected ??
+      payload.battery_present ?? payload.batteryPresent ??
+      payload.ev_connected ?? payload.evConnected ??
+      payload.ev_present ?? payload.evPresent ??
+      payload.vehicle_connected ?? payload.vehicleConnected ??
+      payload.bms_connected ?? payload.bmsConnected ??
+      payload.is_connected ?? payload.isConnected ??
+      payload.connected ?? payload.battery_status ?? payload.pilot_state ?? payload.cp_state ?? payload.battery;
+
     if (rawBattConn !== undefined && rawBattConn !== null) {
-      charger.batteryConnected = (rawBattConn === true || rawBattConn === 'true' || rawBattConn === 1 || rawBattConn === '1');
+      const s = String(rawBattConn).trim().toUpperCase();
+      const isExplicitlyDisconnected = (
+        rawBattConn === false ||
+        s === 'FALSE' ||
+        s === '0' ||
+        s === 'DISCONNECTED' ||
+        s === 'NO' ||
+        s === 'OFF' ||
+        s === 'UNPLUGGED' ||
+        s === 'OPEN' ||
+        s === 'A'
+      );
+      charger.batteryConnected = !isExplicitlyDisconnected;
+    } else {
+      // If PCB doesn't send explicit boolean flag, determine from electrical & operational telemetry:
+      const pStatus = payload.status ? String(payload.status).toUpperCase() : '';
+      const isStatusDisconnected = pStatus.includes('NO_BATTERY') || pStatus.includes('DISCONNECTED') || pStatus.includes('UNPLUGGED');
+      if (isStatusDisconnected) {
+        charger.batteryConnected = false;
+      } else {
+        const hasBatteryMetrics = (soc !== undefined && soc > 0) || reqV > 0 || reqA > 0 || a > 0.1;
+        if (hasBatteryMetrics || charger.batteryConnected === undefined) {
+          charger.batteryConnected = true;
+        }
+      }
     }
 
     const rawEnergy = payload.session_energy_kwh ?? payload.energy_kwh ?? payload.kwh ?? payload.kWh ?? payload.energy ?? payload.sessionKwh;

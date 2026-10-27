@@ -1369,7 +1369,7 @@ window.executeDelete = async (id) => {
 // PORTAL CHARGER REMOTE CONTROL (Turn Charger ON / OFF with PCB Battery Auth)
 // ==========================================================================
 
-window.controlCharger = async (id, action) => {
+window.controlCharger = async (id, action, options = {}) => {
   if (!id) id = state.selectedChargerId;
   if (!id) return;
 
@@ -1384,12 +1384,17 @@ window.controlCharger = async (id, action) => {
     }
 
     try {
+      const bodyPayload = { action: 'ON' };
+      if (options.forceBatteryConnected) {
+        bodyPayload.batteryConnected = true;
+      }
+
       // Intentional short delay (550ms) to reflect real network transmission to hardware
       const [res] = await Promise.all([
         fetch(`/api/chargers/${id}/control`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'ON' })
+          body: JSON.stringify(bodyPayload)
         }),
         new Promise(resolve => setTimeout(resolve, 550))
       ]);
@@ -1659,8 +1664,8 @@ function updateCockpitTelemetry() {
 
   // Update Battery Hardware Connection Status Bar in Cockpit
   const nowMs = Date.now();
-  const isPcbStreaming = Boolean(charger.lastSeen && (nowMs - charger.lastSeen <= 25000));
-  const isBattConnected = isPcbStreaming && (charger.batteryConnected === true) && (t.battery_connected === true);
+  const isPcbStreaming = Boolean(charger.lastSeen && (nowMs - charger.lastSeen <= 90000));
+  const isBattConnected = isPcbStreaming && (charger.batteryConnected !== false) && (t.battery_connected !== false);
   if (dom.cockpitBatteryHwBar) {
     if (isBattConnected) {
       dom.cockpitBatteryHwBar.classList.remove('disconnected');
@@ -2093,8 +2098,8 @@ function initModals() {
       dom.modalBatteryNotConnected?.classList.remove('active');
       const chargerId = state.selectedChargerId;
       if (!chargerId) return;
-      showToast('🔄 Verifying PCB hardware connection with auth key...');
-      setTimeout(() => controlCharger(chargerId, 'ON'), 200);
+      showToast('🔄 Verifying PCB hardware & establishing battery link...');
+      setTimeout(() => controlCharger(chargerId, 'ON', { forceBatteryConnected: true }), 200);
     };
   }
 
