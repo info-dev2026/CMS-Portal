@@ -662,7 +662,7 @@
                 </div>
               </div>
 
-              <!-- Power Vector & Session Stat Pill -->
+              <!-- Power Vector & Session Delivered Widget -->
               <div class="dual-small-cards">
                 <div class="cockpit-card mini-radar">
                   <span class="card-caption">POWER VECTOR</span>
@@ -673,6 +673,19 @@
                     <div class="radar-blip" id="cockpitRadarBlip"></div>
                   </div>
                   <span class="radar-stat-num" id="cockpitRadarNum">1.2 P</span>
+                </div>
+
+                <!-- Dedicated Session Delivered Card -->
+                <div class="cockpit-card session-delivered-card">
+                  <span class="card-caption">SESSION DELIVERED</span>
+                  <div class="session-delivered-readout">
+                    <span class="session-delivered-big-num" id="cockpitSessionDeliveredVal">0.00</span>
+                    <span class="session-delivered-big-unit">kWh</span>
+                  </div>
+                  <div class="session-delivered-sub-row">
+                    <span class="session-delivered-rev-tag" id="cockpitSessionDeliveredRev">Est: ₹0.00</span>
+                    <span class="session-delivered-time-tag" id="cockpitSessionDeliveredDuration">0 min</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1484,6 +1497,78 @@
         <button type="button" class="btn-outline-sm" id="btnDismissBatteryModal">Close</button>
         <button type="button" class="btn-primary-cyan" id="btnQuickConnectBattery">
           <span>🔄 Retry PCB &amp; Battery Check</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 4: SESSION COMPLETED - SESSION DELIVERED SUMMARY POPUP
+       ========================================================================== -->
+  <div class="modal-backdrop" id="modalSessionCompleted">
+    <div class="modal-card modal-status-card session-summary-card">
+      <div class="modal-header">
+        <div class="modal-badge-chip success">
+          <span class="chip-pulse"></span>
+          <span>⚡ CHARGING SESSION COMPLETED</span>
+        </div>
+        <button type="button" class="btn-modal-close" id="btnCloseSessionSummaryModal">✕</button>
+      </div>
+
+      <div class="modal-status-body">
+        <div class="modal-status-icon-wrapper session-success">
+          <span class="status-big-icon">🏁</span>
+        </div>
+        <h2 class="modal-headline success">Session Completed</h2>
+        <p class="modal-main-message" id="popupSessionSummaryMainMsg">
+          Charging session ended successfully.
+        </p>
+
+        <!-- Prominent Session Delivered & Revenue Metrics Display -->
+        <div class="session-summary-kpi-grid">
+          <div class="session-kpi-box energy">
+            <span class="session-kpi-label">SESSION DELIVERED</span>
+            <div class="session-kpi-value-row">
+              <span class="session-kpi-num" id="popupSessionDeliveredKwh">0.00</span>
+              <span class="session-kpi-unit">kWh</span>
+            </div>
+            <span class="session-kpi-sub">Total power delivered in session</span>
+          </div>
+
+          <div class="session-kpi-box revenue">
+            <span class="session-kpi-label">REVENUE GENERATED</span>
+            <div class="session-kpi-value-row">
+              <span class="session-kpi-currency">₹</span>
+              <span class="session-kpi-num highlight-green" id="popupSessionRevenue">0.00</span>
+            </div>
+            <span class="session-kpi-sub" id="popupSessionTariffRate">Rate: ₹18.00 / kWh</span>
+          </div>
+        </div>
+
+        <!-- Hardware & Session Details Box -->
+        <div class="hardware-auth-details-box">
+          <div class="auth-detail-row">
+            <span class="detail-label">Charge Point:</span>
+            <strong class="detail-value" id="popupSessionChargerName">Charge Point</strong>
+          </div>
+          <div class="auth-detail-row">
+            <span class="detail-label">Session Duration:</span>
+            <span class="detail-value text-cyan" id="popupSessionDuration">0 mins</span>
+          </div>
+          <div class="auth-detail-row">
+            <span class="detail-label">Completion Reason:</span>
+            <span class="detail-value" id="popupSessionReason">Normal Completion</span>
+          </div>
+          <div class="auth-detail-row">
+            <span class="detail-label">Next Session Delivered:</span>
+            <span class="detail-value text-green">Ready to reset to 0.00 kW on start</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions-row center">
+        <button type="button" class="btn-primary-cyan-large" id="btnOkSessionSummary">
+          <span>✓ OK, Done</span>
         </button>
       </div>
     </div>

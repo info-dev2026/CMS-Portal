@@ -573,6 +573,83 @@ class Database {
     return charger;
   }
 
+  // --- Session Delivered Management ---
+  startNewSession(id) {
+    const charger = typeof id === 'string' ? this.getChargerById(id) : id;
+    if (!charger) return null;
+
+    if (!charger.telemetry) charger.telemetry = {};
+    // When a charging starts, session delivered resets to 0.00 kW/kWh
+    charger.telemetry.session_energy_kwh = 0.00;
+    charger.telemetry.session_duration_min = 0.0;
+    charger.sessionPendingReset = false;
+    charger.status = 'CHARGING';
+    charger.batteryConnected = true;
+    charger.lastSeen = Date.now();
+    charger.sessionStartedAt = Date.now();
+    this.saveChargers();
+    return charger;
+  }
+
+  completeSession(id, reason = 'Completed') {
+    const charger = typeof id === 'string' ? this.getChargerById(id) : id;
+    if (!charger) return null;
+
+    const t = charger.telemetry || {};
+    const energyKwh = Number(t.session_energy_kwh) > 0 ? +Number(t.session_energy_kwh).toFixed(2) : 0.00;
+    
+    // Calculate duration in minutes
+    let durationMin = Number(t.session_duration_min) > 0 ? +Number(t.session_duration_min).toFixed(1) : 0.0;
+    if (charger.sessionStartedAt) {
+      const elapsedMin = +((Date.now() - charger.sessionStartedAt) / (1000 * 60)).toFixed(1);
+      if (elapsedMin > 0) durationMin = elapsedMin;
+    }
+
+    const rate = charger.tariff ? (Number(charger.tariff.ratePerKwh) || 18.0) : 18.0;
+    const sessionFee = charger.tariff ? (Number(charger.tariff.sessionFee) || 0.0) : 0.0;
+    const revenue = energyKwh > 0 ? +((energyKwh * rate) + sessionFee).toFixed(2) : 0.00;
+
+    // Accumulate to total charger statistics
+    if (!charger.stats) charger.stats = { totalEnergyKwh: 0, totalRevenue: 0, totalSessions: 0 };
+    charger.stats.totalSessions = (charger.stats.totalSessions || 0) + 1;
+    charger.stats.totalEnergyKwh = +((charger.stats.totalEnergyKwh || 0) + energyKwh).toFixed(2);
+    charger.stats.totalRevenue = +((charger.stats.totalRevenue || 0) + revenue).toFixed(2);
+
+    if (!charger.completedSessions) charger.completedSessions = [];
+    const sessionRecord = {
+      sessionId: 'sess_' + Date.now().toString(36),
+      chargerId: charger.id,
+      chargerName: charger.name,
+      location: charger.location,
+      connectorType: charger.connectorType,
+      energyKwh: energyKwh,
+      durationMin: durationMin,
+      ratePerKwh: rate,
+      sessionFee: sessionFee,
+      revenue: revenue,
+      reason: reason,
+      completedAt: new Date().toISOString()
+    };
+    charger.completedSessions.push(sessionRecord);
+    charger.lastCompletedSession = sessionRecord;
+    charger.sessionPendingReset = true; // When next session starts, kWh will reset to 0
+    charger.status = 'ONLINE';
+    charger.lastSeen = Date.now();
+    charger.currentTransactionId = null;
+
+    if (charger.telemetry) {
+      charger.telemetry.status = 'ONLINE';
+      charger.telemetry.power_kw = 0.0;
+      charger.telemetry.charger_current = 0.0;
+      charger.telemetry.charging_mode = 'STANDBY // READY';
+      charger.telemetry.timestamp = Date.now();
+    }
+
+    this.saveChargers();
+    return { charger, sessionRecord };
+  }
+
+
   isPcbOnline(idOrCharger, timeoutMs = 90000) {
     const charger = typeof idOrCharger === 'string' ? this.getChargerById(idOrCharger) : idOrCharger;
     if (!charger || !charger.lastSeen) return false;

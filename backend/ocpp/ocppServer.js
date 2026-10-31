@@ -354,6 +354,7 @@ class OcppServer {
     console.log(`========================================================`);
 
     if (charger) {
+      db.startNewSession(charger.id);
       charger.status = 'CHARGING';
       charger.batteryConnected = true;
       charger.currentTransactionId = txId;
@@ -420,50 +421,13 @@ class OcppServer {
     client.activeTransactionId = null;
 
     if (charger) {
-      charger.status = 'ONLINE';
-      charger.currentTransactionId = null;
-      charger.lastSeen = Date.now();
-
-      if (!charger.telemetry) charger.telemetry = {};
-      charger.telemetry.status = 'ONLINE';
-      charger.telemetry.power_kw = 0.0;
-      charger.telemetry.charger_current = 0.0;
-      charger.telemetry.charging_mode = 'STANDBY // READY';
-
-      // Calculate delivered energy in kWh
-      let deliveredKwh = 0.0;
       if (meterStop !== undefined && !isNaN(Number(meterStop))) {
-        // Meter in OCPP is typically reported in Wh or kWh
-        deliveredKwh = Number(meterStop) > 500 ? +(Number(meterStop) / 1000).toFixed(2) : +Number(meterStop).toFixed(2);
-      } else if (charger.telemetry.session_energy_kwh) {
-        deliveredKwh = Number(charger.telemetry.session_energy_kwh);
+        const deliveredKwh = Number(meterStop) > 500 ? +(Number(meterStop) / 1000).toFixed(2) : +Number(meterStop).toFixed(2);
+        if (!charger.telemetry) charger.telemetry = {};
+        charger.telemetry.session_energy_kwh = deliveredKwh;
       }
 
-      // Record completed session in database
-      const rate = charger.tariff ? (Number(charger.tariff.ratePerKwh) || 18.0) : 18.0;
-      const sessionFee = charger.tariff ? (Number(charger.tariff.sessionFee) || 0.0) : 0.0;
-      const revenue = +((deliveredKwh * rate) + sessionFee).toFixed(2);
-
-      if (!charger.stats) charger.stats = { totalEnergyKwh: 0, totalRevenue: 0, totalSessions: 0 };
-      charger.stats.totalSessions = (charger.stats.totalSessions || 0) + 1;
-      charger.stats.totalEnergyKwh = +((charger.stats.totalEnergyKwh || 0) + deliveredKwh).toFixed(2);
-      charger.stats.totalRevenue = +((charger.stats.totalRevenue || 0) + revenue).toFixed(2);
-
-      if (!charger.completedSessions) charger.completedSessions = [];
-      const sessionRecord = {
-        sessionId: `ocpp_tx_${transactionId}`,
-        transactionId,
-        chargerId: charger.id,
-        chargerName: charger.name,
-        energyKwh: deliveredKwh,
-        revenue,
-        reason: reason || 'Stopped',
-        completedAt: timestamp || new Date().toISOString()
-      };
-      charger.completedSessions.push(sessionRecord);
-      charger.lastCompletedSession = sessionRecord;
-
-      db.saveChargers();
+      const { sessionRecord } = db.completeSession(charger.id, reason || 'OCPP Stop');
 
       this.broadcast({
         type: 'CHARGER_UPDATED',
@@ -474,7 +438,15 @@ class OcppServer {
         type: 'TELEMETRY_UPDATE',
         chargerId: charger.id,
         telemetry: charger.telemetry,
-        status: charger.status
+        status: charger.status,
+        sessionPendingReset: true
+      });
+
+      this.broadcast({
+        type: 'SESSION_COMPLETED',
+        chargerId: charger.id,
+        session: sessionRecord,
+        charger: charger
       });
     }
 

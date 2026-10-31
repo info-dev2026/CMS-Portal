@@ -298,6 +298,21 @@ const dom = {
   btnSimBattConnected: document.getElementById('btnSimBattConnected'),
   btnSimBattDisconnected: document.getElementById('btnSimBattDisconnected'),
 
+  // Session Delivered & Completion Modal DOM Bindings
+  cockpitSessionDeliveredVal: document.getElementById('cockpitSessionDeliveredVal'),
+  cockpitSessionDeliveredRev: document.getElementById('cockpitSessionDeliveredRev'),
+  cockpitSessionDeliveredDuration: document.getElementById('cockpitSessionDeliveredDuration'),
+  modalSessionCompleted: document.getElementById('modalSessionCompleted'),
+  btnCloseSessionSummaryModal: document.getElementById('btnCloseSessionSummaryModal'),
+  btnOkSessionSummary: document.getElementById('btnOkSessionSummary'),
+  popupSessionDeliveredKwh: document.getElementById('popupSessionDeliveredKwh'),
+  popupSessionRevenue: document.getElementById('popupSessionRevenue'),
+  popupSessionTariffRate: document.getElementById('popupSessionTariffRate'),
+  popupSessionChargerName: document.getElementById('popupSessionChargerName'),
+  popupSessionDuration: document.getElementById('popupSessionDuration'),
+  popupSessionReason: document.getElementById('popupSessionReason'),
+  popupSessionSummaryMainMsg: document.getElementById('popupSessionSummaryMainMsg'),
+
   // Charge Points Cards
   chargePointsCardsContainer: document.getElementById('chargePointsCardsContainer'),
   btnOpenAddPageFromPoints: document.getElementById('btnOpenAddPageFromPoints'),
@@ -962,6 +977,24 @@ function handleWsMessage(msg) {
       updateKpis();
       if (state.selectedChargerId) updateCockpitTelemetry();
       break;
+
+    case 'SESSION_COMPLETED':
+      if (msg.charger) {
+        const cIdx = state.chargers.findIndex(c => c.id === msg.charger.id);
+        if (cIdx !== -1) {
+          state.chargers[cIdx] = msg.charger;
+        }
+        renderDashboardTable();
+        renderChargePointsCards();
+        updateKpis();
+        if (state.selectedChargerId === msg.charger.id) {
+          updateCockpitTelemetry();
+        }
+      }
+      if (msg.session) {
+        showSessionCompletedPopup(msg.session);
+      }
+      break;
   }
 }
 
@@ -1424,6 +1457,9 @@ window.controlCharger = async (id, action, options = {}) => {
           chg.batteryConnected = true;
           if (data.charger && data.charger.telemetry) {
             chg.telemetry = data.charger.telemetry;
+          } else if (chg.telemetry) {
+            chg.telemetry.session_energy_kwh = 0.00;
+            chg.telemetry.session_duration_min = 0.0;
           }
         }
 
@@ -1515,6 +1551,11 @@ window.controlCharger = async (id, action, options = {}) => {
         renderChargePointsCards();
         updateKpis();
         showToast('⏹ Charger turned OFF (Standby ready)');
+
+        // Show Session Completed Popup with kW delivered and revenue generated
+        if (data.session) {
+          showSessionCompletedPopup(data.session);
+        }
       }
     } catch (e) {
       showToast(`Network error: ${e.message}`, 'error');
@@ -1710,6 +1751,23 @@ function updateCockpitTelemetry() {
     dom.cockpitSessionTime.textContent = isAcSessionHeld(charger)
       ? `${Number(t.session_duration_min || 0).toFixed(1)} min • Fully charged (held until next session)`
       : `${Number(t.session_duration_min || 0).toFixed(1)} min active`;
+  }
+
+  // Dedicated Session Delivered Display (kW consumed in session + live estimated revenue)
+  const sessionDeliveredVal = Number(t.session_energy_kwh !== undefined && t.session_energy_kwh !== null ? t.session_energy_kwh : 0.0);
+  const tariffRate = charger.tariff ? (Number(charger.tariff.ratePerKwh) || 18.0) : 18.0;
+  const sessionFee = charger.tariff ? (Number(charger.tariff.sessionFee) || 0.0) : 0.0;
+  const sessionRevEst = sessionDeliveredVal > 0 ? (sessionDeliveredVal * tariffRate) + sessionFee : 0.0;
+  const sessionDuration = Number(t.session_duration_min || 0);
+
+  if (dom.cockpitSessionDeliveredVal) {
+    dom.cockpitSessionDeliveredVal.textContent = sessionDeliveredVal.toFixed(2);
+  }
+  if (dom.cockpitSessionDeliveredRev) {
+    dom.cockpitSessionDeliveredRev.textContent = `Est: ₹${sessionRevEst.toFixed(2)}`;
+  }
+  if (dom.cockpitSessionDeliveredDuration) {
+    dom.cockpitSessionDeliveredDuration.textContent = `${sessionDuration.toFixed(1)} min`;
   }
 
   const radarRatio = pKw / 100;
@@ -2153,9 +2211,48 @@ function initModals() {
     };
   }
 
+  // Session Summary Completed Modal Handlers
+  if (dom.btnCloseSessionSummaryModal) {
+    dom.btnCloseSessionSummaryModal.onclick = () => dom.modalSessionCompleted?.classList.remove('active');
+  }
+  if (dom.btnOkSessionSummary) {
+    dom.btnOkSessionSummary.onclick = () => {
+      dom.modalSessionCompleted?.classList.remove('active');
+    };
+  }
+
   // Initialize Report Modal handlers
   initReportModal();
 }
+
+/**
+ * Show Session Delivered Summary Popup when a charging session completes.
+ * Displays kW consumed in the whole session and revenue generated.
+ */
+function showSessionCompletedPopup(session) {
+  if (!session) return;
+  const kwh = Number(session.energyKwh !== undefined ? session.energyKwh : (session.energyDeliveredKwh || 0));
+  const rev = Number(session.revenue !== undefined ? session.revenue : (session.revenueGenerated || 0));
+  const rate = Number(session.ratePerKwh || session.tariffRate || 18.0);
+  const dur = Number(session.durationMin || 0);
+  const chgName = session.chargerName || (state.chargers.find(c => c.id === session.chargerId)?.name) || 'Charge Point';
+  const reason = session.reason || 'Normal Completion';
+
+  if (dom.popupSessionDeliveredKwh) dom.popupSessionDeliveredKwh.textContent = kwh.toFixed(2);
+  if (dom.popupSessionRevenue) dom.popupSessionRevenue.textContent = rev.toFixed(2);
+  if (dom.popupSessionTariffRate) dom.popupSessionTariffRate.textContent = `Tariff Rate: ₹${rate.toFixed(2)} / kWh`;
+  if (dom.popupSessionChargerName) dom.popupSessionChargerName.textContent = chgName;
+  if (dom.popupSessionDuration) dom.popupSessionDuration.textContent = `${dur.toFixed(1)} mins`;
+  if (dom.popupSessionReason) dom.popupSessionReason.textContent = reason;
+  if (dom.popupSessionSummaryMainMsg) {
+    dom.popupSessionSummaryMainMsg.textContent = `Charging session for ${chgName} ended. ${kwh.toFixed(2)} kWh was consumed during this session.`;
+  }
+
+  if (dom.modalSessionCompleted) {
+    dom.modalSessionCompleted.classList.add('active');
+  }
+}
+window.showSessionCompletedPopup = showSessionCompletedPopup;
 
 // ==========================================================================
 // 4B. CHARGER REPORT GENERATOR (24h, 7d, 1mo + Revenue Calculation & Export)

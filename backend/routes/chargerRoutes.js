@@ -105,6 +105,7 @@ module.exports = function(broadcast, ocppServer) {
         try {
           const ocppRes = await ocppServer.remoteStart(charger.id, 1, 'PORTAL_REMOTE');
           if (ocppRes && (ocppRes.status === 'Accepted' || ocppRes.status === 'Scheduled')) {
+            db.startNewSession(charger.id);
             charger.batteryConnected = true;
             charger.status = 'CHARGING';
             charger.lastSeen = Date.now();
@@ -249,7 +250,8 @@ module.exports = function(broadcast, ocppServer) {
         requestedAt: now
       });
 
-      // Battery IS connected! Proceed with beginning charging session
+      // Battery IS connected! Reset Session Delivered to 0 for the fresh session
+      db.startNewSession(charger.id);
       charger.batteryConnected = true;
       charger.status = 'CHARGING';
       charger.lastSeen = Date.now();
@@ -312,80 +314,45 @@ module.exports = function(broadcast, ocppServer) {
         charger
       });
     } else {
-      // Turn OFF
+      // Turn OFF -> Finalize Session Delivered, calculate consumed kW & revenue, and trigger completion
       if (isOcppActive) {
         try {
           const activeTx = charger.currentTransactionId || 1;
-          const ocppRes = await ocppServer.remoteStop(charger.id, activeTx);
-          charger.status = 'ONLINE';
-          charger.lastSeen = Date.now();
-          if (!charger.telemetry) charger.telemetry = {};
-          charger.telemetry.status = 'ONLINE';
-          charger.telemetry.power_kw = 0.0;
-          charger.telemetry.charger_current = 0.0;
-          charger.telemetry.charging_mode = 'STANDBY // READY';
-          charger.telemetry.timestamp = Date.now();
-          db.saveChargers();
-
-          broadcast({
-            type: 'CHARGER_UPDATED',
-            charger
-          });
-
-          broadcast({
-            type: 'TELEMETRY_UPDATE',
-            chargerId: charger.id,
-            telemetry: charger.telemetry,
-            status: charger.status,
-            sessionPendingReset: charger.sessionPendingReset === true
-          });
-
-          return res.json({
-            success: true,
-            ocpp: true,
-            protocol: 'OCPP 1.6-J',
-            message: 'Charger turned OFF successfully via OCPP RemoteStopTransaction.',
-            status: charger.status,
-            charger
-          });
+          await ocppServer.remoteStop(charger.id, activeTx);
         } catch (err) {
-          return res.status(500).json({
-            success: false,
-            ocpp: true,
-            error: err.message,
-            message: `OCPP error: ${err.message}`
-          });
+          console.warn('OCPP RemoteStop notice:', err.message);
         }
       }
 
-      charger.status = 'ONLINE';
-      charger.lastSeen = Date.now();
-      if (!charger.telemetry) charger.telemetry = {};
-      charger.telemetry.status = 'ONLINE';
-      charger.telemetry.power_kw = 0.0;
-      charger.telemetry.charger_current = 0.0;
-      charger.telemetry.charging_mode = 'STANDBY // READY';
-      charger.telemetry.timestamp = Date.now();
-      db.saveChargers();
+      const { charger: updatedCharger, sessionRecord } = db.completeSession(charger.id, isOcppActive ? 'OCPP Remote Stop' : 'Portal Remote Stop');
 
       broadcast({
         type: 'CHARGER_UPDATED',
-        charger
+        charger: updatedCharger
       });
 
       broadcast({
         type: 'TELEMETRY_UPDATE',
-        chargerId: charger.id,
-        telemetry: charger.telemetry,
-        status: charger.status,
-        sessionPendingReset: charger.sessionPendingReset === true
+        chargerId: updatedCharger.id,
+        telemetry: updatedCharger.telemetry,
+        status: updatedCharger.status,
+        sessionPendingReset: true
+      });
+
+      broadcast({
+        type: 'SESSION_COMPLETED',
+        chargerId: updatedCharger.id,
+        session: sessionRecord,
+        charger: updatedCharger
       });
 
       return res.json({
         success: true,
+        ocpp: isOcppActive,
         message: 'Charger turned OFF successfully.',
-        status: charger.status,
-        charger
+        status: updatedCharger.status,
+        session: sessionRecord,
+        charger: updatedCharger
       });
     }
   });

@@ -14,9 +14,9 @@
       "sessionFee": 40
     },
     "stats": {
-      "totalSessions": 3,
-      "totalEnergyKwh": 48,
-      "totalRevenue": 984
+      "totalSessions": 7,
+      "totalEnergyKwh": 82.75,
+      "totalRevenue": 1689.5
     },
     "rfidTokens": [
       "RFID_TAG_1927"
@@ -27,7 +27,7 @@
     "connectorType": "Custom CAN-Bus Lab Bench",
     "status": "ONLINE",
     "batteryConnected": true,
-    "lastSeen": 1793428891484,
+    "lastSeen": 1793431511924,
     "telemetry": {
       "charger_voltage": 420.5,
       "charger_current": 0,
@@ -42,11 +42,11 @@
       "charging_mode": "STANDBY // READY",
       "fault_code": "NONE",
       "battery_connected": true,
-      "session_energy_kwh": 0,
+      "session_energy_kwh": 16,
       "session_duration_min": 0,
       "power_kw": 0,
       "target_power_kw": 68,
-      "timestamp": 1793428891466
+      "timestamp": 1793431511924
     },
     "history": [
       {
@@ -273,22 +273,69 @@
         "battery_req_voltage": 425,
         "battery_req_current": 160,
         "power_kw": 22
+      },
+      {
+        "timestamp": 1793431452178,
+        "charger_voltage": 400,
+        "charger_current": 150,
+        "battery_soc": 85,
+        "battery_req_voltage": 425,
+        "battery_req_current": 160,
+        "power_kw": 60
+      },
+      {
+        "timestamp": 1793431507792,
+        "charger_voltage": 415,
+        "charger_current": 0,
+        "battery_soc": 45,
+        "battery_req_voltage": 425,
+        "battery_req_current": 160,
+        "power_kw": 0
+      },
+      {
+        "timestamp": 1793431507809,
+        "charger_voltage": 418,
+        "charger_current": 180,
+        "battery_soc": 70,
+        "battery_req_voltage": 425,
+        "battery_req_current": 160,
+        "power_kw": 75
+      },
+      {
+        "timestamp": 1793431507828,
+        "charger_voltage": 415,
+        "charger_current": 148.2,
+        "battery_soc": 70,
+        "battery_req_voltage": 425,
+        "battery_req_current": 160,
+        "power_kw": 61.5
       }
     ],
-    "pendingCommands": [],
+    "pendingCommands": [
+      {
+        "id": "cmd_1793431507838_m07v",
+        "command": "AUTHENTICATE_BATTERY_CONNECT",
+        "params": {
+          "action": "START_CHARGING",
+          "requestedAt": 1793431507838
+        },
+        "timestamp": 1793431507838
+      }
+    ],
     "ocpp": {
       "connected": false,
       "protocol": "ocpp1.6j",
-      "connectedAt": "2026-10-31T06:41:31.411Z",
+      "connectedAt": "2026-10-31T07:25:11.876Z",
       "remoteIp": "::1",
       "vendor": "SaaphZone",
       "model": "SZ-PCB-V1",
       "firmwareVersion": "2.1.0",
       "serialNumber": "chg_muya1w8x_4zmz",
-      "disconnectedAt": "2026-10-31T06:41:31.496Z"
+      "disconnectedAt": "2026-10-31T07:25:11.935Z",
+      "enabled": true
     },
     "currentTransactionId": null,
-    "sessionPendingReset": false,
+    "sessionPendingReset": true,
     "completedSessions": [
       {
         "sessionId": "ocpp_tx_1248",
@@ -318,19 +365,82 @@
         "energyKwh": 16,
         "revenue": 328,
         "reason": "Local",
-        "completedAt": "2026-10-31T06:41:31.481Z"
+        "completedAt": "2026-10-31T06:41:31.481Z",
+        "savedToPg": true
+      },
+      {
+        "sessionId": "sess_mvw2tbvu",
+        "chargerId": "chg_muya1w8x_4zmz",
+        "chargerName": "TESTING_GAURAV_SIR",
+        "location": "Delhi",
+        "connectorType": "Custom CAN-Bus Lab Bench",
+        "energyKwh": 18.75,
+        "durationMin": 0,
+        "ratePerKwh": 18,
+        "sessionFee": 40,
+        "revenue": 377.5,
+        "reason": "Portal Remote Stop",
+        "completedAt": "2026-10-31T07:25:07.818Z"
+      },
+      {
+        "sessionId": "sess_mvw2tbws",
+        "chargerId": "chg_muya1w8x_4zmz",
+        "chargerName": "TESTING_GAURAV_SIR",
+        "location": "Delhi",
+        "connectorType": "Custom CAN-Bus Lab Bench",
+        "energyKwh": 0,
+        "durationMin": 0,
+        "ratePerKwh": 18,
+        "sessionFee": 40,
+        "revenue": 0,
+        "reason": "Portal Remote Stop",
+        "completedAt": "2026-10-31T07:25:07.852Z",
+        "savedToPg": true
+      },
+      {
+        "sessionId": "sess_mvw2tf1h",
+        "chargerId": "chg_muya1w8x_4zmz",
+        "chargerName": "TESTING_GAURAV_SIR",
+        "location": "Delhi",
+        "connectorType": "Custom CAN-Bus Lab Bench",
+        "energyKwh": 0,
+        "durationMin": 0,
+        "ratePerKwh": 18,
+        "sessionFee": 40,
+        "revenue": 0,
+        "reason": "OCPP Remote Stop",
+        "completedAt": "2026-10-31T07:25:11.909Z"
+      },
+      {
+        "sessionId": "sess_mvw2tf1w",
+        "chargerId": "chg_muya1w8x_4zmz",
+        "chargerName": "TESTING_GAURAV_SIR",
+        "location": "Delhi",
+        "connectorType": "Custom CAN-Bus Lab Bench",
+        "energyKwh": 16,
+        "durationMin": 0,
+        "ratePerKwh": 18,
+        "sessionFee": 40,
+        "revenue": 328,
+        "reason": "Local",
+        "completedAt": "2026-10-31T07:25:11.924Z"
       }
     ],
     "lastCompletedSession": {
-      "sessionId": "ocpp_tx_1452",
-      "transactionId": 1452,
+      "sessionId": "sess_mvw2tf1w",
       "chargerId": "chg_muya1w8x_4zmz",
       "chargerName": "TESTING_GAURAV_SIR",
+      "location": "Delhi",
+      "connectorType": "Custom CAN-Bus Lab Bench",
       "energyKwh": 16,
+      "durationMin": 0,
+      "ratePerKwh": 18,
+      "sessionFee": 40,
       "revenue": 328,
       "reason": "Local",
-      "completedAt": "2026-10-31T06:41:31.481Z"
-    }
+      "completedAt": "2026-10-31T07:25:11.924Z"
+    },
+    "sessionStartedAt": 1793431511915
   },
   {
     "id": "chg_mvhont6j_u81x",
@@ -476,6 +586,11 @@
       }
     ],
     "batteryConnected": true,
-    "pendingCommands": []
+    "pendingCommands": [],
+    "ocpp": {
+      "enabled": true,
+      "protocol": "ocpp1.6j",
+      "connected": false
+    }
   }
 ]
