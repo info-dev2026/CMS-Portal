@@ -1075,11 +1075,15 @@ function renderDashboardTable() {
     if (c.status === 'CHARGING') badgeClass = 'charging';
     else if (c.status === 'OFFLINE') badgeClass = 'offline';
 
+    const ocppBadge = c.ocpp && c.ocpp.connected
+      ? `<span class="badge-ocpp" title="Connected via OCPP 1.6-J Protocol (Firmware: ${c.ocpp.firmwareVersion || '1.0'})">⚡ OCPP 1.6-J</span>`
+      : '';
+
     const tr = document.createElement('tr');
     tr.id = `row_${c.id}`;
     tr.innerHTML = `
       <td>
-        <strong>${escapeHtml(c.name)}</strong><br>
+        <strong>${escapeHtml(c.name)}</strong> ${ocppBadge}<br>
         <small style="color:var(--text-muted);">${escapeHtml(c.location)} • ${c.connectorType}</small>
       </td>
       <td><span class="badge-status ${badgeClass}">${c.status}</span></td>
@@ -1124,6 +1128,11 @@ function updateDashboardTableRow(c) {
   if (c.status === 'CHARGING') badgeClass = 'charging';
   else if (c.status === 'OFFLINE') badgeClass = 'offline';
 
+  const ocppBadge = c.ocpp && c.ocpp.connected
+    ? `<span class="badge-ocpp" title="Connected via OCPP 1.6-J Protocol (Firmware: ${c.ocpp.firmwareVersion || '1.0'})">⚡ OCPP 1.6-J</span>`
+    : '';
+
+  tr.children[0].innerHTML = `<strong>${escapeHtml(c.name)}</strong> ${ocppBadge}<br><small style="color:var(--text-muted);">${escapeHtml(c.location)} • ${c.connectorType}</small>`;
   tr.children[1].innerHTML = `<span class="badge-status ${badgeClass}">${c.status}</span>`;
   tr.children[2].innerHTML = renderVoltageCell(c);
   tr.children[3].innerHTML = `<strong>${a} A</strong> <span style="color:var(--primary-cyan); font-size:0.75rem;">(Req: ${reqA}A)</span>`;

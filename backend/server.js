@@ -9,7 +9,7 @@ const db = require('../database/db');
 
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({ noServer: true });
 wss.on('error', (err) => {
   // Prevent unhandled error event crash during port re-binding
 });
@@ -53,6 +53,9 @@ function broadcast(data) {
   });
 }
 
+// Instantiate OCPP 1.6-J CSMS Server
+const ocppServer = require('./ocpp/ocppServer')(broadcast);
+
 // Hardware PCB Heartbeat Watchdog:
 // Verifies whether a PCB authorizing the charger's auth key is actively streaming.
 // 90-second timeout window accommodates standard IoT/microcontroller intervals (30s, 60s) and network latency.
@@ -95,7 +98,14 @@ setInterval(() => {
 // Mount modular routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/postgres', require('./routes/postgresRoutes'));
-app.use('/api/chargers', require('./routes/chargerRoutes')(broadcast));
+app.use('/api/chargers', require('./routes/chargerRoutes')(broadcast, ocppServer));
+app.get('/api/ocpp/clients', (req, res) => {
+  res.json({
+    success: true,
+    protocol: 'OCPP 1.6-J',
+    connectedClients: ocppServer.getConnectedChargers()
+  });
+});
 
 const telemetryRouter = require('./routes/telemetryRoutes')(broadcast);
 app.use('/api/telemetry', telemetryRouter);
@@ -167,7 +177,28 @@ app.use((req, res) => {
   res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
 });
 
-// WebSocket Lifecycle
+// WebSocket Lifecycle & Dual-Protocol Upgrade Router:
+// 1. /ocpp16/:chargerId or /ocpp/:chargerId -> Dedicated OCPP 1.6-J Protocol Server
+// 2. / or /ws -> Real-time Frontend Dashboard Telemetry Stream
+server.on('upgrade', (request, socket, head) => {
+  try {
+    const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
+    const pathname = url.pathname;
+
+    if (pathname.startsWith('/ocpp16') || pathname.startsWith('/ocpp')) {
+      ocppServer.wss.handleUpgrade(request, socket, head, (ws) => {
+        ocppServer.wss.emit('connection', ws, request);
+      });
+    } else {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+      });
+    }
+  } catch (err) {
+    socket.destroy();
+  }
+});
+
 wss.on('connection', (ws) => {
   ws.send(JSON.stringify({
     type: 'INIT',
@@ -192,9 +223,10 @@ server.on('error', (err) => {
     server.listen(nextPort, () => {
       console.log(`====================================================`);
       console.log(`⚡ SAAPHZONE CSMS CONTROL SERVER RUNNING`);
-      console.log(`🌐 Dashboard URL: http://localhost:${nextPort}`);
-      console.log(`📡 Telemetry API: http://localhost:${nextPort}/api/telemetry`);
-      console.log(`🔌 WebSocket URL: ws://localhost:${nextPort}`);
+      console.log(`🌐 Dashboard URL:    http://localhost:${nextPort}`);
+      console.log(`📡 Telemetry API:    http://localhost:${nextPort}/api/telemetry`);
+      console.log(`🔌 Dashboard WS:     ws://localhost:${nextPort}`);
+      console.log(`🔋 OCPP 1.6-J WS:    ws://localhost:${nextPort}/ocpp16/<chargerId>`);
       console.log(`====================================================`);
     });
   } else {
@@ -205,10 +237,12 @@ server.on('error', (err) => {
 server.listen(PORT, () => {
   console.log(`====================================================`);
   console.log(`⚡ SAAPHZONE CSMS CONTROL SERVER RUNNING`);
-  console.log(`🌐 Dashboard URL: http://localhost:${PORT}`);
-  console.log(`📡 Telemetry API: http://localhost:${PORT}/api/telemetry`);
-  console.log(`🔌 WebSocket URL: ws://localhost:${PORT}`);
+  console.log(`🌐 Dashboard URL:    http://localhost:${PORT}`);
+  console.log(`📡 Telemetry API:    http://localhost:${PORT}/api/telemetry`);
+  console.log(`🔌 Dashboard WS:     ws://localhost:${PORT}`);
+  console.log(`🔋 OCPP 1.6-J WS:    ws://localhost:${PORT}/ocpp16/<chargerId>`);
   console.log(`====================================================`);
 });
 
-module.exports = { app, server };
+module.exports = { app, server, ocppServer };
+

@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "simulate": "node test-pcb-client.js"
+    "simulate": "node test-pcb-client.js",
+    "ocpp-simulate": "node test-ocpp-client.js",
+    "test:ocpp": "node -e \"require('./backend/server.js'); setTimeout(() => require('./test-ocpp-integration.js'), 2000);\""
   },
   "keywords": [
     "ev-charger",

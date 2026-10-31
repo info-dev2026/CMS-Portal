@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../database/db');
 
-module.exports = function(broadcast) {
+module.exports = function(broadcast, ocppServer) {
   // Get all chargers
   router.get('/', (req, res) => {
     const chargers = db.getAllChargers();
@@ -82,7 +82,7 @@ module.exports = function(broadcast) {
   router.post('/:id/delete', handleDelete);
 
   // Portal Remote Control (Turn Charger ON / OFF directly through portal)
-  router.post('/:id/control', (req, res) => {
+  router.post('/:id/control', async (req, res) => {
     const { action, batteryConnected } = req.body; // 'ON', 'OFF', 'START', 'STOP'
     const chargerId = req.params.id;
     const charger = db.getChargerById(chargerId);
@@ -92,6 +92,7 @@ module.exports = function(broadcast) {
     }
 
     const isTurnOn = action === 'ON' || action === 'START';
+    const isOcppActive = Boolean(ocppServer && (ocppServer.isChargerConnected(charger.id) || ocppServer.isChargerConnected(charger.apiKey)));
 
     // Allow explicit override if passed in request (e.g. from simulator or test suite)
     if (batteryConnected !== undefined) {
@@ -99,6 +100,60 @@ module.exports = function(broadcast) {
     }
 
     if (isTurnOn) {
+      // 1. If connected via OCPP 1.6-J, dispatch RemoteStartTransaction to PCB
+      if (isOcppActive) {
+        try {
+          const ocppRes = await ocppServer.remoteStart(charger.id, 1, 'PORTAL_REMOTE');
+          if (ocppRes && (ocppRes.status === 'Accepted' || ocppRes.status === 'Scheduled')) {
+            charger.batteryConnected = true;
+            charger.status = 'CHARGING';
+            charger.lastSeen = Date.now();
+            if (!charger.telemetry) charger.telemetry = {};
+            charger.telemetry.status = 'CHARGING';
+            charger.telemetry.battery_connected = true;
+            charger.telemetry.charging_mode = 'OCPP 1.6-J // REMOTE START';
+            db.saveChargers();
+
+            broadcast({
+              type: 'CHARGER_UPDATED',
+              charger
+            });
+            broadcast({
+              type: 'TELEMETRY_UPDATE',
+              chargerId: charger.id,
+              telemetry: charger.telemetry,
+              status: charger.status
+            });
+
+            return res.status(200).json({
+              success: true,
+              ocpp: true,
+              protocol: 'OCPP 1.6-J',
+              batteryConnected: true,
+              authenticated: true,
+              message: 'Charging begin (OCPP RemoteStartTransaction Accepted by PCB firmware).',
+              status: charger.status,
+              charger
+            });
+          } else {
+            return res.status(200).json({
+              success: false,
+              ocpp: true,
+              error: `PCB hardware rejected RemoteStartTransaction (${ocppRes?.status || 'Rejected'})`,
+              message: `PCB hardware rejected RemoteStartTransaction (${ocppRes?.status || 'Rejected'}).`,
+              charger
+            });
+          }
+        } catch (err) {
+          return res.status(500).json({
+            success: false,
+            ocpp: true,
+            error: err.message,
+            message: `OCPP error: ${err.message}`
+          });
+        }
+      }
+
       const now = Date.now();
       const pcbHeartbeatTimeout = 90000; // 90s active communication window
       const isPcbOnline = Boolean(charger.lastSeen && (now - charger.lastSeen <= pcbHeartbeatTimeout));
@@ -220,7 +275,6 @@ module.exports = function(broadcast) {
         const curA = Number(charger.telemetry.charger_current);
         charger.telemetry.charger_voltage = curV > 100 && curV <= acV * 1.1 ? curV : acV;
         charger.telemetry.charger_current = curA > 0.5 && curA <= acA ? curA : acA;
-        // Do NOT calculate kW for AC: use the kW measured/sent from PCB
         charger.telemetry.power_kw = charger.telemetry.power_kw !== undefined && charger.telemetry.power_kw !== null ? Number(charger.telemetry.power_kw) : 0.0;
         charger.telemetry.charging_mode = 'AC SMART // LEVEL 2';
       } else {
@@ -259,6 +313,51 @@ module.exports = function(broadcast) {
       });
     } else {
       // Turn OFF
+      if (isOcppActive) {
+        try {
+          const activeTx = charger.currentTransactionId || 1;
+          const ocppRes = await ocppServer.remoteStop(charger.id, activeTx);
+          charger.status = 'ONLINE';
+          charger.lastSeen = Date.now();
+          if (!charger.telemetry) charger.telemetry = {};
+          charger.telemetry.status = 'ONLINE';
+          charger.telemetry.power_kw = 0.0;
+          charger.telemetry.charger_current = 0.0;
+          charger.telemetry.charging_mode = 'STANDBY // READY';
+          charger.telemetry.timestamp = Date.now();
+          db.saveChargers();
+
+          broadcast({
+            type: 'CHARGER_UPDATED',
+            charger
+          });
+
+          broadcast({
+            type: 'TELEMETRY_UPDATE',
+            chargerId: charger.id,
+            telemetry: charger.telemetry,
+            status: charger.status,
+            sessionPendingReset: charger.sessionPendingReset === true
+          });
+
+          return res.json({
+            success: true,
+            ocpp: true,
+            protocol: 'OCPP 1.6-J',
+            message: 'Charger turned OFF successfully via OCPP RemoteStopTransaction.',
+            status: charger.status,
+            charger
+          });
+        } catch (err) {
+          return res.status(500).json({
+            success: false,
+            ocpp: true,
+            error: err.message,
+            message: `OCPP error: ${err.message}`
+          });
+        }
+      }
+
       charger.status = 'ONLINE';
       charger.lastSeen = Date.now();
       if (!charger.telemetry) charger.telemetry = {};
@@ -288,6 +387,57 @@ module.exports = function(broadcast) {
         status: charger.status,
         charger
       });
+    }
+  });
+
+  // Get OCPP status and connection details
+  router.get('/:id/ocpp', (req, res) => {
+    const charger = db.getChargerById(req.params.id);
+    if (!charger) return res.status(404).json({ success: false, error: 'Charger not found' });
+    const isConnected = Boolean(ocppServer && (ocppServer.isChargerConnected(charger.id) || ocppServer.isChargerConnected(charger.apiKey)));
+    const host = req.headers.host || 'localhost:3000';
+    res.json({
+      success: true,
+      chargerId: charger.id,
+      name: charger.name,
+      ocpp: {
+        connected: isConnected,
+        subprotocol: 'ocpp1.6',
+        wsUrl: `ws://${host}/ocpp16/${charger.id}`,
+        vendor: charger.ocpp?.vendor || 'Generic PCB',
+        model: charger.ocpp?.model || 'EVSE-V1',
+        firmwareVersion: charger.ocpp?.firmwareVersion || '1.0.0',
+        activeTransactionId: charger.currentTransactionId || null,
+        lastSeen: charger.lastSeen
+      }
+    });
+  });
+
+  // Remote Reset (Soft/Hard) via OCPP
+  router.post('/:id/ocpp/reset', async (req, res) => {
+    const { type } = req.body; // 'Soft' or 'Hard'
+    try {
+      if (!ocppServer || !ocppServer.isChargerConnected(req.params.id)) {
+        return res.status(400).json({ success: false, error: 'Charger is not connected via OCPP 1.6-J' });
+      }
+      const result = await ocppServer.reset(req.params.id, type || 'Soft');
+      res.json({ success: true, message: `Reset (${type || 'Soft'}) dispatched to PCB.`, result });
+    } catch (e) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  // Remote Unlock Connector via OCPP
+  router.post('/:id/ocpp/unlock', async (req, res) => {
+    const { connectorId } = req.body;
+    try {
+      if (!ocppServer || !ocppServer.isChargerConnected(req.params.id)) {
+        return res.status(400).json({ success: false, error: 'Charger is not connected via OCPP 1.6-J' });
+      }
+      const result = await ocppServer.unlockConnector(req.params.id, connectorId || 1);
+      res.json({ success: true, message: 'UnlockConnector dispatched to PCB.', result });
+    } catch (e) {
+      res.status(500).json({ success: false, error: e.message });
     }
   });
 
