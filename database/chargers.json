@@ -14,9 +14,9 @@
       "sessionFee": 40
     },
     "stats": {
-      "totalSessions": 12,
-      "totalEnergyKwh": 151.65,
-      "totalRevenue": 3089.7
+      "totalSessions": 13,
+      "totalEnergyKwh": 160.25,
+      "totalRevenue": 3284.5
     },
     "rfidTokens": [
       "RFID_TAG_1927"
@@ -25,30 +25,28 @@
     "maxVoltage": 500,
     "maxCurrent": 350,
     "connectorType": "Custom CAN-Bus Lab Bench",
-    "status": "ONLINE",
+    "status": "OFFLINE",
     "batteryConnected": true,
-    "lastSeen": 1793434384073,
+    "lastSeen": 1793435550166,
     "telemetry": {
-      "charger_voltage": 415,
+      "charger_voltage": 418,
       "charger_current": 0,
-      "dc_voltage": 420.5,
-      "dc_current": 154.2,
-      "ac_voltage": 415,
-      "ac_current": 95.8,
-      "battery_soc": 82,
+      "dc_voltage": 410,
+      "dc_current": 180,
+      "battery_soc": 75,
       "battery_req_voltage": 425,
       "battery_req_current": 160,
       "battery_temp": 34.2,
       "charger_temp": 41,
-      "status": "ONLINE",
+      "status": "OFFLINE",
       "charging_mode": "STANDBY // READY",
       "fault_code": "NONE",
       "battery_connected": true,
-      "session_energy_kwh": 22.4,
+      "session_energy_kwh": 15.5,
       "session_duration_min": 0,
       "power_kw": 0,
       "target_power_kw": 68,
-      "timestamp": 1793434384073
+      "timestamp": 1793435550166
     },
     "history": [
       {
@@ -340,22 +338,22 @@
         "power_kw": 60
       },
       {
-        "timestamp": 1793434384048,
-        "charger_voltage": 415,
-        "charger_current": 148.2,
+        "timestamp": 1793435522331,
+        "charger_voltage": 418,
+        "charger_current": 145,
         "battery_soc": 75,
         "battery_req_voltage": 425,
         "battery_req_current": 160,
-        "power_kw": 61.5
+        "power_kw": 60
       },
       {
-        "timestamp": 1793434384063,
-        "charger_voltage": 415,
-        "charger_current": 148.2,
-        "battery_soc": 82,
+        "timestamp": 1793435545096,
+        "charger_voltage": 418,
+        "charger_current": 145,
+        "battery_soc": 75,
         "battery_req_voltage": 425,
         "battery_req_current": 160,
-        "power_kw": 65
+        "power_kw": 60
       }
     ],
     "pendingCommands": [],
@@ -518,52 +516,54 @@
         "sessionFee": 40,
         "revenue": 319,
         "reason": "Portal Remote Stop",
-        "completedAt": "2026-10-31T08:05:20.586Z"
+        "completedAt": "2026-10-31T08:05:20.586Z",
+        "savedToPg": true
       },
       {
-        "sessionId": "sess_mvw4iz7t",
+        "sessionId": "sess_mvw57gfo",
         "chargerId": "chg_muya1w8x_4zmz",
         "chargerName": "TESTING_GAURAV_SIR",
         "location": "Delhi",
         "connectorType": "Custom CAN-Bus Lab Bench",
-        "energyKwh": 22.4,
-        "durationMin": 0,
+        "energyKwh": 15.5,
+        "durationMin": 27.6,
         "ratePerKwh": 18,
         "sessionFee": 40,
-        "revenue": 443.2,
-        "dcVolt": 420.5,
-        "acVolt": 415,
-        "dcAmp": 154.2,
-        "acAmp": 95.8,
+        "revenue": 319,
         "reason": "Portal Remote Stop",
-        "completedAt": "2026-10-31T08:13:04.073Z"
+        "completedAt": "2026-10-31T08:32:06.132Z",
+        "savedToPg": true
+      },
+      {
+        "sessionId": "sess_mvw57yza",
+        "chargerId": "chg_muya1w8x_4zmz",
+        "chargerName": "TESTING_GAURAV_SIR",
+        "location": "Delhi",
+        "connectorType": "Custom CAN-Bus Lab Bench",
+        "energyKwh": 15.5,
+        "durationMin": 0.2,
+        "ratePerKwh": 18,
+        "sessionFee": 40,
+        "revenue": 319,
+        "reason": "Portal Remote Stop",
+        "completedAt": "2026-10-31T08:32:30.166Z"
       }
     ],
     "lastCompletedSession": {
-      "sessionId": "sess_mvw4iz7t",
+      "sessionId": "sess_mvw57yza",
       "chargerId": "chg_muya1w8x_4zmz",
       "chargerName": "TESTING_GAURAV_SIR",
       "location": "Delhi",
       "connectorType": "Custom CAN-Bus Lab Bench",
-      "energyKwh": 22.4,
-      "durationMin": 0,
+      "energyKwh": 15.5,
+      "durationMin": 0.2,
       "ratePerKwh": 18,
       "sessionFee": 40,
-      "revenue": 443.2,
-      "dcVolt": 420.5,
-      "acVolt": 415,
-      "dcAmp": 154.2,
-      "acAmp": 95.8,
+      "revenue": 319,
       "reason": "Portal Remote Stop",
-      "completedAt": "2026-10-31T08:13:04.073Z"
+      "completedAt": "2026-10-31T08:32:30.166Z"
     },
-    "sessionStartedAt": 1793434384056,
-    "sessionReadings": {
-      "dcVolt": 420.5,
-      "acVolt": 415,
-      "dcAmp": 154.2,
-      "acAmp": 95.8
-    }
+    "sessionStartedAt": 1793435537785
   },
   {
     "id": "chg_mvhont6j_u81x",

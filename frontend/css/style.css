@@ -2000,11 +2000,13 @@ input:checked + .slider:before { transform: translateX(18px); }
   align-items: center;
   justify-content: center;
   z-index: 500;
-  padding: 20px;
+  padding: 16px;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .modal-backdrop.active { display: flex; }
-.modal-card { width: 100%; max-width: 500px; background: var(--bg-card); border-radius: var(--radius-md); padding: 28px; box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25); border: 1px solid var(--border-card); }
+.modal-card { width: 100%; max-width: 500px; background: var(--bg-card); border-radius: var(--radius-md); padding: 28px; box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25); border: 1px solid var(--border-card); margin: auto; }
 .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
 .modal-title { font-size: 1.15rem; font-weight: 800; color: var(--text-main); }
 .btn-modal-close { background: none; border: none; font-size: 1.2rem; color: var(--text-muted); cursor: pointer; }
@@ -3042,38 +3044,79 @@ body.dark-theme .session-delivered-big-unit {
   color: var(--text-muted);
 }
 
-/* Session Summary Modal Styling */
+/* ==========================================================================
+   SESSION SUMMARY MODAL (COMPACT, SLEEK & OPERABLE ON ALL SCREENS)
+   ========================================================================== */
+
 .modal-status-card.session-summary-card {
-  max-width: 540px;
+  max-width: 470px;
+  max-height: 90vh;
+  padding: 16px 20px 14px 20px;
+  margin: auto;
   border-color: #10b981;
-  box-shadow: 0 24px 60px rgba(16, 185, 129, 0.22), 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 20px 50px rgba(16, 185, 129, 0.22), 0 4px 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
-.modal-status-icon-wrapper.session-success {
+.modal-status-card.session-summary-card::-webkit-scrollbar {
+  width: 4px;
+}
+.modal-status-card.session-summary-card::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.35);
+  border-radius: 4px;
+}
+
+.session-summary-card .modal-header {
+  margin-bottom: 4px;
+}
+
+.session-summary-card .modal-status-body {
+  margin: 0 0 8px 0;
+}
+
+.session-summary-card .modal-status-icon-wrapper.session-success {
+  width: 42px;
+  height: 42px;
+  margin-bottom: 4px;
   background: rgba(16, 185, 129, 0.15);
   border: 2px solid #10b981;
-  box-shadow: 0 0 24px rgba(16, 185, 129, 0.35);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.3);
   animation: pulseSessionSuccess 2s infinite ease-in-out;
 }
 
-@keyframes pulseSessionSuccess {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); }
-  50% { transform: scale(1.04); box-shadow: 0 0 32px rgba(16, 185, 129, 0.5); }
+.session-summary-card .status-big-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.session-summary-card .modal-headline {
+  font-size: 1.15rem;
+  margin-bottom: 2px;
+}
+
+.session-summary-card .modal-main-message {
+  font-size: 0.8rem;
+  line-height: 1.3;
+  margin-bottom: 6px;
+  color: var(--text-muted);
 }
 
 .session-summary-kpi-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 8px;
   width: 100%;
-  margin: 14px 0 16px 0;
+  margin: 2px 0 6px 0;
 }
 
 .session-kpi-box {
   background: var(--bg-card-subtle);
   border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
-  padding: 16px 14px;
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3093,12 +3136,12 @@ body.dark-theme .session-delivered-big-unit {
 }
 
 .session-kpi-label {
-  font-size: 0.68rem;
+  font-size: 0.58rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.07em;
   color: var(--text-muted);
   text-transform: uppercase;
-  margin-bottom: 6px;
+  margin-bottom: 1px;
 }
 
 .session-kpi-box.energy .session-kpi-label {
@@ -3113,61 +3156,220 @@ body.dark-theme .session-delivered-big-unit {
   display: flex;
   align-items: baseline;
   justify-content: center;
-  gap: 3px;
-  margin-bottom: 4px;
+  gap: 2px;
+  margin-bottom: 1px;
 }
 
 .session-kpi-num {
-  font-size: 2.1rem;
+  font-size: 1.45rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--text-main);
   font-variant-numeric: tabular-nums;
+  line-height: 1.1;
 }
 
 .session-kpi-num.highlight-green {
   color: #10b981;
-  text-shadow: 0 0 16px rgba(16, 185, 129, 0.35);
+  text-shadow: 0 0 10px rgba(16, 185, 129, 0.28);
 }
 
 .session-kpi-currency {
-  font-size: 1.4rem;
+  font-size: 1.05rem;
   font-weight: 800;
   color: #10b981;
 }
 
 .session-kpi-unit {
-  font-size: 0.9rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: var(--primary-cyan);
 }
 
 .session-kpi-sub {
-  font-size: 0.72rem;
+  font-size: 0.62rem;
   font-weight: 600;
   color: var(--text-muted);
 }
 
+/* Compact Electrical Consumption Grid */
+.session-electrical-metrics-panel {
+  width: 100%;
+  margin-bottom: 6px;
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.session-elec-grid-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.elec-grid-title {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.elec-grid-chip {
+  font-size: 0.55rem;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 163, 224, 0.12);
+  color: var(--primary-cyan);
+  border: 1px solid rgba(0, 163, 224, 0.25);
+  letter-spacing: 0.03em;
+}
+
+.session-electrical-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  width: 100%;
+}
+
+.session-elec-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  padding: 4px 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  transition: transform 0.15s ease;
+}
+
+.session-elec-box.dc-card {
+  border-color: rgba(0, 163, 224, 0.3);
+  background: linear-gradient(180deg, rgba(0, 163, 224, 0.06) 0%, transparent 100%);
+}
+
+.session-elec-box.ac-card {
+  border-color: rgba(99, 102, 241, 0.3);
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.06) 0%, transparent 100%);
+}
+
+.elec-badge-pill {
+  font-size: 0.52rem;
+  font-weight: 900;
+  padding: 0 4px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  margin-bottom: 1px;
+  letter-spacing: 0.03em;
+}
+
+.elec-badge-pill.dc {
+  background: rgba(0, 163, 224, 0.15);
+  color: #0284c7;
+  border: 1px solid rgba(0, 163, 224, 0.35);
+}
+
+body.dark-theme .elec-badge-pill.dc {
+  color: #38bdf8;
+}
+
+.elec-badge-pill.ac {
+  background: rgba(99, 102, 241, 0.15);
+  color: #6366f1;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+}
+
+body.dark-theme .elec-badge-pill.ac {
+  color: #818cf8;
+}
+
+.elec-box-label {
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  margin-bottom: 1px;
+}
+
+.elec-value-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 1px;
+  margin: 1px 0;
+}
+
+.elec-big-num {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.elec-unit {
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: var(--primary-cyan);
+}
+
+.elec-box-sub {
+  font-size: 0.52rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* Compact Hardware & Details Box */
+.hardware-auth-details-box {
+  width: 100%;
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.auth-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
+/* Compact Action Button */
 .btn-primary-cyan-large {
   background: linear-gradient(135deg, #10b981, #059669);
   color: #ffffff;
   border: none;
-  border-radius: var(--radius-md);
-  padding: 12px 28px;
-  font-size: 0.95rem;
+  border-radius: 6px;
+  padding: 8px 22px;
+  font-size: 0.85rem;
   font-weight: 800;
   letter-spacing: 0.02em;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
+  gap: 6px;
+  box-shadow: 0 3px 12px rgba(16, 185, 129, 0.32);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .btn-primary-cyan-large:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+  box-shadow: 0 5px 16px rgba(16, 185, 129, 0.42);
 }
 
 .btn-primary-cyan-large:active {
@@ -3179,153 +3381,7 @@ body.dark-theme .session-delivered-big-unit {
   justify-content: center;
   align-items: center;
   width: 100%;
-}
-
-/* ==========================================================================
-   SESSION ELECTRICAL CONSUMPTION METRICS (DC VOLT, AC VOLT, DC AMP, AC AMP)
-   ========================================================================== */
-
-.session-electrical-metrics-panel {
-  width: 100%;
-  margin-bottom: 16px;
-  background: var(--bg-card-subtle);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
-  padding: 14px 16px;
-  text-align: left;
-}
-
-.session-elec-grid-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.elec-grid-title {
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  text-transform: uppercase;
-}
-
-.elec-grid-chip {
-  font-size: 0.65rem;
-  font-weight: 800;
-  padding: 2px 8px;
-  border-radius: var(--radius-pill);
-  background: rgba(0, 163, 224, 0.12);
-  color: var(--primary-cyan);
-  border: 1px solid rgba(0, 163, 224, 0.25);
-  letter-spacing: 0.05em;
-}
-
-.session-electrical-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  width: 100%;
-}
-
-@media (max-width: 580px) {
-  .session-electrical-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.session-elec-box {
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-sm);
-  padding: 10px 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  position: relative;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.session-elec-box:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.session-elec-box.dc-card {
-  border-color: rgba(0, 163, 224, 0.35);
-  background: linear-gradient(180deg, rgba(0, 163, 224, 0.07) 0%, transparent 100%);
-}
-
-.session-elec-box.ac-card {
-  border-color: rgba(99, 102, 241, 0.35);
-  background: linear-gradient(180deg, rgba(99, 102, 241, 0.07) 0%, transparent 100%);
-}
-
-.elec-badge-pill {
-  font-size: 0.6rem;
-  font-weight: 900;
-  padding: 1px 7px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  margin-bottom: 4px;
-  letter-spacing: 0.05em;
-}
-
-.elec-badge-pill.dc {
-  background: rgba(0, 163, 224, 0.15);
-  color: #0284c7;
-  border: 1px solid rgba(0, 163, 224, 0.4);
-}
-
-body.dark-theme .elec-badge-pill.dc {
-  color: #38bdf8;
-}
-
-.elec-badge-pill.ac {
-  background: rgba(99, 102, 241, 0.15);
-  color: #6366f1;
-  border: 1px solid rgba(99, 102, 241, 0.4);
-}
-
-body.dark-theme .elec-badge-pill.ac {
-  color: #818cf8;
-}
-
-.elec-box-label {
-  font-size: 0.66rem;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-  margin-bottom: 2px;
-}
-
-.elec-value-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 2px;
-  margin: 3px 0;
-}
-
-.elec-big-num {
-  font-size: 1.35rem;
-  font-weight: 800;
-  color: var(--text-main);
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-}
-
-.elec-unit {
-  font-size: 0.76rem;
-  font-weight: 700;
-  color: var(--primary-cyan);
-}
-
-.elec-box-sub {
-  font-size: 0.62rem;
-  font-weight: 600;
-  color: var(--text-muted);
+  margin-top: 6px;
 }
 
 
