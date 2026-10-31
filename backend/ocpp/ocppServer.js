@@ -55,8 +55,23 @@ class OcppServer {
       let charger = db.getChargerById(rawChargerId) || db.getChargerByApiKey(rawChargerId);
       if (!charger) {
         const all = db.getAllChargers();
-        if (all.length === 1) {
+        if (all.length === 1 && (rawChargerId === 'chg_bay_01' || rawChargerId === 'default' || rawChargerId === 'test' || rawChargerId === 'sim')) {
           charger = all[0];
+        } else {
+          // Auto-provision any new incoming hardware charge point!
+          const cleanName = rawChargerId.replace(/[_-]+/g, ' ').toUpperCase();
+          charger = db.addCharger({
+            name: cleanName,
+            location: 'OCPP Auto-Enrolled Bay',
+            connectorType: 'CCS2 Combo',
+            maxVoltage: 800,
+            maxCurrent: 350
+          });
+          console.log(`✨ [OCPP 1.6J] Auto-registered new charger: "${charger.name}" (${charger.id})`);
+          this.broadcast({
+            type: 'CHARGER_ADDED',
+            charger
+          });
         }
       }
       const chargerId = charger ? charger.id : rawChargerId;

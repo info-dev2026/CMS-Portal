@@ -247,6 +247,18 @@ class Database {
             c.pendingCommands = [];
           }
 
+          // Automatically enable OCPP 1.6-J on every existing charger
+          if (!c.ocpp) {
+            c.ocpp = {
+              enabled: true,
+              protocol: 'ocpp1.6j',
+              connected: false
+            };
+          } else {
+            c.ocpp.enabled = true;
+            c.ocpp.protocol = 'ocpp1.6j';
+          }
+
           // Strict PCB hardware authentication check:
           // PCB active window extended to 90s to accommodate standard IoT/microcontroller telemetry intervals
           const isPcbActive = Boolean(c.lastSeen && (now - c.lastSeen <= 90000));
@@ -384,6 +396,11 @@ class Database {
       location: data.location ? data.location.trim() : 'Unassigned Bay',
       apiKey: apiKey,
       isAc: isAc,
+      ocpp: {
+        enabled: true,
+        protocol: 'ocpp1.6j',
+        connected: false
+      },
       credentials: {
         username: data.username ? data.username.trim() : `bay0${this.chargers.length + 1}`,
         password: data.password ? data.password.trim() : 'password123'

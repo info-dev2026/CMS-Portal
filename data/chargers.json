@@ -14,9 +14,9 @@
       "sessionFee": 40
     },
     "stats": {
-      "totalSessions": 2,
-      "totalEnergyKwh": 32,
-      "totalRevenue": 656
+      "totalSessions": 3,
+      "totalEnergyKwh": 48,
+      "totalRevenue": 984
     },
     "rfidTokens": [
       "RFID_TAG_1927"
@@ -25,9 +25,9 @@
     "maxVoltage": 500,
     "maxCurrent": 350,
     "connectorType": "Custom CAN-Bus Lab Bench",
-    "status": "OFFLINE",
+    "status": "ONLINE",
     "batteryConnected": true,
-    "lastSeen": 1793427552452,
+    "lastSeen": 1793428891484,
     "telemetry": {
       "charger_voltage": 420.5,
       "charger_current": 0,
@@ -38,7 +38,7 @@
       "battery_req_current": 160,
       "battery_temp": 34.2,
       "charger_temp": 41,
-      "status": "OFFLINE",
+      "status": "ONLINE",
       "charging_mode": "STANDBY // READY",
       "fault_code": "NONE",
       "battery_connected": true,
@@ -46,7 +46,7 @@
       "session_duration_min": 0,
       "power_kw": 0,
       "target_power_kw": 68,
-      "timestamp": 1793427552437
+      "timestamp": 1793428891466
     },
     "history": [
       {
@@ -277,14 +277,15 @@
     ],
     "pendingCommands": [],
     "ocpp": {
-      "connected": true,
+      "connected": false,
       "protocol": "ocpp1.6j",
-      "connectedAt": "2026-10-31T06:19:12.389Z",
+      "connectedAt": "2026-10-31T06:41:31.411Z",
       "remoteIp": "::1",
       "vendor": "SaaphZone",
       "model": "SZ-PCB-V1",
       "firmwareVersion": "2.1.0",
-      "serialNumber": "chg_muya1w8x_4zmz"
+      "serialNumber": "chg_muya1w8x_4zmz",
+      "disconnectedAt": "2026-10-31T06:41:31.496Z"
     },
     "currentTransactionId": null,
     "sessionPendingReset": false,
@@ -308,17 +309,27 @@
         "revenue": 328,
         "reason": "Local",
         "completedAt": "2026-10-31T06:19:12.450Z"
+      },
+      {
+        "sessionId": "ocpp_tx_1452",
+        "transactionId": 1452,
+        "chargerId": "chg_muya1w8x_4zmz",
+        "chargerName": "TESTING_GAURAV_SIR",
+        "energyKwh": 16,
+        "revenue": 328,
+        "reason": "Local",
+        "completedAt": "2026-10-31T06:41:31.481Z"
       }
     ],
     "lastCompletedSession": {
-      "sessionId": "ocpp_tx_1139",
-      "transactionId": 1139,
+      "sessionId": "ocpp_tx_1452",
+      "transactionId": 1452,
       "chargerId": "chg_muya1w8x_4zmz",
       "chargerName": "TESTING_GAURAV_SIR",
       "energyKwh": 16,
       "revenue": 328,
       "reason": "Local",
-      "completedAt": "2026-10-31T06:19:12.450Z"
+      "completedAt": "2026-10-31T06:41:31.481Z"
     }
   },
   {
