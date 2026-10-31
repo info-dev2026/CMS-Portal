@@ -312,6 +312,12 @@ const dom = {
   popupSessionDuration: document.getElementById('popupSessionDuration'),
   popupSessionReason: document.getElementById('popupSessionReason'),
   popupSessionSummaryMainMsg: document.getElementById('popupSessionSummaryMainMsg'),
+  popupSessionDcVolt: document.getElementById('popupSessionDcVolt'),
+  popupSessionAcVolt: document.getElementById('popupSessionAcVolt'),
+  popupSessionDcAmp: document.getElementById('popupSessionDcAmp'),
+  popupSessionAcAmp: document.getElementById('popupSessionAcAmp'),
+  popupSessionDcDetail: document.getElementById('popupSessionDcDetail'),
+  popupSessionAcDetail: document.getElementById('popupSessionAcDetail'),
 
   // Charge Points Cards
   chargePointsCardsContainer: document.getElementById('chargePointsCardsContainer'),
@@ -2247,6 +2253,20 @@ function showSessionCompletedPopup(session) {
   if (dom.popupSessionSummaryMainMsg) {
     dom.popupSessionSummaryMainMsg.textContent = `Charging session for ${chgName} ended. ${kwh.toFixed(2)} kWh was consumed during this session.`;
   }
+
+  // Populate Consumed Electrical Metrics: DC Volt, AC Volt, DC Amp, AC Amp
+  const dcVolt = Number(session.dcVolt !== undefined ? session.dcVolt : (session.dc_voltage || session.dc_volt || 0));
+  const acVolt = Number(session.acVolt !== undefined ? session.acVolt : (session.ac_voltage || session.ac_volt || 0));
+  const dcAmp = Number(session.dcAmp !== undefined ? session.dcAmp : (session.dc_current || session.dc_amp || 0));
+  const acAmp = Number(session.acAmp !== undefined ? session.acAmp : (session.ac_current || session.ac_amp || 0));
+
+  if (dom.popupSessionDcVolt) dom.popupSessionDcVolt.textContent = dcVolt.toFixed(1);
+  if (dom.popupSessionAcVolt) dom.popupSessionAcVolt.textContent = acVolt.toFixed(1);
+  if (dom.popupSessionDcAmp) dom.popupSessionDcAmp.textContent = dcAmp.toFixed(1);
+  if (dom.popupSessionAcAmp) dom.popupSessionAcAmp.textContent = acAmp.toFixed(1);
+
+  if (dom.popupSessionDcDetail) dom.popupSessionDcDetail.textContent = `${dcVolt.toFixed(1)} V • ${dcAmp.toFixed(1)} A`;
+  if (dom.popupSessionAcDetail) dom.popupSessionAcDetail.textContent = `${acVolt.toFixed(1)} V • ${acAmp.toFixed(1)} A`;
 
   if (dom.modalSessionCompleted) {
     dom.modalSessionCompleted.classList.add('active');

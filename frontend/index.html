@@ -1545,11 +1545,69 @@
           </div>
         </div>
 
+        <!-- Session Electrical Consumed Metrics (DC Volt, AC Volt, DC Amp, AC Amp) -->
+        <div class="session-electrical-metrics-panel">
+          <div class="session-elec-grid-header">
+            <span class="elec-grid-title">⚡ ELECTRICAL READINGS CONSUMED</span>
+            <span class="elec-grid-chip">ACTIVE TELEMETRY</span>
+          </div>
+
+          <div class="session-electrical-grid">
+            <div class="session-elec-box dc-card">
+              <span class="elec-badge-pill dc">DC</span>
+              <span class="elec-box-label">DC VOLT</span>
+              <div class="elec-value-row">
+                <span class="elec-big-num" id="popupSessionDcVolt">0.0</span>
+                <span class="elec-unit">V</span>
+              </div>
+              <span class="elec-box-sub">Pack Voltage</span>
+            </div>
+
+            <div class="session-elec-box ac-card">
+              <span class="elec-badge-pill ac">AC</span>
+              <span class="elec-box-label">AC VOLT</span>
+              <div class="elec-value-row">
+                <span class="elec-big-num" id="popupSessionAcVolt">0.0</span>
+                <span class="elec-unit">V</span>
+              </div>
+              <span class="elec-box-sub">Mains Voltage</span>
+            </div>
+
+            <div class="session-elec-box dc-card">
+              <span class="elec-badge-pill dc">DC</span>
+              <span class="elec-box-label">DC AMP</span>
+              <div class="elec-value-row">
+                <span class="elec-big-num" id="popupSessionDcAmp">0.0</span>
+                <span class="elec-unit">A</span>
+              </div>
+              <span class="elec-box-sub">Charge Current</span>
+            </div>
+
+            <div class="session-elec-box ac-card">
+              <span class="elec-badge-pill ac">AC</span>
+              <span class="elec-box-label">AC AMP</span>
+              <div class="elec-value-row">
+                <span class="elec-big-num" id="popupSessionAcAmp">0.0</span>
+                <span class="elec-unit">A</span>
+              </div>
+              <span class="elec-box-sub">Grid Current</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Hardware & Session Details Box -->
         <div class="hardware-auth-details-box">
           <div class="auth-detail-row">
             <span class="detail-label">Charge Point:</span>
             <strong class="detail-value" id="popupSessionChargerName">Charge Point</strong>
+          </div>
+          <div class="auth-detail-row">
+            <span class="detail-label">DC Bus Link:</span>
+            <span class="detail-value text-cyan" id="popupSessionDcDetail">0.0 V • 0.0 A</span>
+          </div>
+          <div class="auth-detail-row">
+            <span class="detail-label">AC Input Mains:</span>
+            <span class="detail-value text-cyan" id="popupSessionAcDetail">0.0 V • 0.0 A</span>
           </div>
           <div class="auth-detail-row">
             <span class="detail-label">Session Duration:</span>

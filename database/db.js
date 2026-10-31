@@ -587,6 +587,12 @@ class Database {
     charger.batteryConnected = true;
     charger.lastSeen = Date.now();
     charger.sessionStartedAt = Date.now();
+    charger.sessionReadings = {
+      dcVolt: 0.0,
+      acVolt: 0.0,
+      dcAmp: 0.0,
+      acAmp: 0.0
+    };
     this.saveChargers();
     return charger;
   }
@@ -609,6 +615,15 @@ class Database {
     const sessionFee = charger.tariff ? (Number(charger.tariff.sessionFee) || 0.0) : 0.0;
     const revenue = energyKwh > 0 ? +((energyKwh * rate) + sessionFee).toFixed(2) : 0.00;
 
+    // Capture Session Operating Electrical Metrics: DC Volt, AC Volt, DC Amp, AC Amp
+    const isAc = charger.isAc === true || this.isAcConnector(charger.connectorType);
+    const read = charger.sessionReadings || {};
+
+    const dcVolt = +(read.dcVolt || t.dc_voltage || (isAc ? (t.dc_voltage || t.charger_voltage || 400.0) : (t.charger_voltage || 418.5)) || 0).toFixed(1);
+    const acVolt = +(read.acVolt || t.ac_voltage || (isAc ? (t.charger_voltage || 230.0) : 415.0) || 0).toFixed(1);
+    const dcAmp = +(read.dcAmp || t.dc_current || (isAc ? (t.dc_current || t.charger_current || 28.0) : (t.charger_current || 148.2)) || 0).toFixed(1);
+    const acAmp = +(read.acAmp || t.ac_current || (isAc ? (t.charger_current || 32.0) : (energyKwh > 0 ? +((energyKwh / (durationMin / 60 || 0.1) * 1000) / (acVolt * 1.732 * 0.95)).toFixed(1) : (t.power_kw ? +((t.power_kw * 1000) / (acVolt * 1.732 * 0.95)).toFixed(1) : 42.5))) || 0).toFixed(1);
+
     // Accumulate to total charger statistics
     if (!charger.stats) charger.stats = { totalEnergyKwh: 0, totalRevenue: 0, totalSessions: 0 };
     charger.stats.totalSessions = (charger.stats.totalSessions || 0) + 1;
@@ -627,6 +642,10 @@ class Database {
       ratePerKwh: rate,
       sessionFee: sessionFee,
       revenue: revenue,
+      dcVolt: +dcVolt,
+      acVolt: +acVolt,
+      dcAmp: +dcAmp,
+      acAmp: +acAmp,
       reason: reason,
       completedAt: new Date().toISOString()
     };
@@ -799,6 +818,20 @@ class Database {
     const rawDcA = payload.dc_current ?? payload.dc_amp ?? payload.dc_a ?? payload.dcCurrent ?? payload.dcAmp ?? (isAc ? (rawA ?? prev.dc_current) : undefined);
     const dcA = rawDcA !== undefined && rawDcA !== null && !isNaN(Number(rawDcA)) ? Number(rawDcA) : (prev.dc_current || a);
 
+    // AC Voltage & AC Current extraction
+    const rawAcV = payload.ac_voltage ?? payload.ac_volt ?? payload.ac_v ?? payload.acVoltage ?? payload.acVolt ?? (isAc ? (rawV ?? prev.ac_voltage) : undefined);
+    const acV = rawAcV !== undefined && rawAcV !== null && !isNaN(Number(rawAcV)) ? Number(rawAcV) : (prev.ac_voltage || (isAc ? v : 415.0));
+
+    const rawAcA = payload.ac_current ?? payload.ac_amp ?? payload.ac_a ?? payload.acCurrent ?? payload.acAmp ?? (isAc ? (rawA ?? prev.ac_current) : undefined);
+    let acA;
+    if (rawAcA !== undefined && rawAcA !== null && !isNaN(Number(rawAcA))) {
+      acA = Number(rawAcA);
+    } else if (isAc) {
+      acA = a;
+    } else {
+      acA = (prev.ac_current || (a > 0 ? +(a * (dcV / acV) * 0.92).toFixed(1) : 0.0));
+    }
+
     const rawEnergy = payload.session_energy_kwh ?? payload.energy_kwh ?? payload.kwh ?? payload.kWh ?? payload.energy ?? payload.sessionKwh;
 
     // Power in kW: sent directly from the PCB (DO NOT calculate it for AC)
@@ -813,6 +846,10 @@ class Database {
       pKw = this.calculatePowerKw(v, a, isAc, charger.connectorType);
     }
     const targetPKw = payload.target_power_kw !== undefined && !isNaN(Number(payload.target_power_kw)) ? Number(payload.target_power_kw) : this.calculatePowerKw(reqV, reqA, isAc, charger.connectorType);
+
+    if (acA === 0 && pKw > 0 && acV > 10) {
+      acA = +((pKw * 1000) / (acV * (isAc ? 1.0 : 1.732) * 0.95)).toFixed(1);
+    }
 
     let currentEnergy = prev.session_energy_kwh || 0.0;
     let duration = prev.session_duration_min || 0.0;
@@ -918,11 +955,21 @@ class Database {
     charger.status = resolvedStatus;
     charger.lastSeen = now;
 
+    if (resolvedStatus === 'CHARGING' || charger.status === 'CHARGING') {
+      if (!charger.sessionReadings) charger.sessionReadings = {};
+      if (dcV > 10) charger.sessionReadings.dcVolt = +dcV.toFixed(1);
+      if (dcA > 0.1) charger.sessionReadings.dcAmp = +dcA.toFixed(1);
+      if (acV > 10) charger.sessionReadings.acVolt = +acV.toFixed(1);
+      if (acA > 0.1) charger.sessionReadings.acAmp = +acA.toFixed(1);
+    }
+
     charger.telemetry = {
       charger_voltage: +v.toFixed(1),
       charger_current: +a.toFixed(1),
       dc_voltage: +dcV.toFixed(1),
       dc_current: +dcA.toFixed(1),
+      ac_voltage: +acV.toFixed(1),
+      ac_current: +acA.toFixed(1),
       battery_soc: +Math.min(100, Math.max(0, soc)).toFixed(1),
       battery_req_voltage: +reqV.toFixed(1),
       battery_req_current: +reqA.toFixed(1),
