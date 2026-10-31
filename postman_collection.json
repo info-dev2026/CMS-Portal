@@ -17,7 +17,12 @@
     },
     {
       "key": "apiKey",
-      "value": "evc_live_0d975f1a5360db2917e90715",
+      "value": "evc_live_959f59a8a1f8a7e728815256",
+      "type": "string"
+    },
+    {
+      "key": "chargerId",
+      "value": "chg_muya1w8x_4zmz",
       "type": "string"
     }
   ],
@@ -249,6 +254,124 @@
           ]
         },
         "description": "Fetches all chargers and their latest telemetry and connection status."
+      }
+    },
+    {
+      "name": "9. Session Delivered - Step 1: Start Session (Resets kW to 0)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"ON\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/chargers/{{chargerId}}/control",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "chargers",
+            "{{chargerId}}",
+            "control"
+          ]
+        },
+        "description": "Starts a charging session. session_energy_kwh and session_duration_min automatically reset to 0.00."
+      }
+    },
+    {
+      "name": "10. Session Delivered - Step 2: Stream Consumed Power (15.5 kWh)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"apiKey\": \"{{apiKey}}\",\n  \"status\": \"CHARGING\",\n  \"battery_connected\": true,\n  \"power_kw\": 60.0,\n  \"session_energy_kwh\": 15.5,\n  \"charger_voltage\": 418.0,\n  \"charger_current\": 145.0,\n  \"battery_soc\": 75.0\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/telemetry",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "telemetry"
+          ]
+        },
+        "description": "Simulates active power delivery. Updates Session Delivered widget live on the portal screen."
+      }
+    },
+    {
+      "name": "11. Session Delivered - Step 3: Stop Session (Popup with kW & Revenue)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"OFF\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/chargers/{{chargerId}}/control",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "chargers",
+            "{{chargerId}}",
+            "control"
+          ]
+        },
+        "description": "Stops the session. Returns total kW consumed and total revenue generated, and triggers the completion popup on the portal screen."
+      }
+    },
+    {
+      "name": "12. Session Delivered - Step 4: Next Session Start (Verify kW resets to 0)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"ON\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/chargers/{{chargerId}}/control",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "chargers",
+            "{{chargerId}}",
+            "control"
+          ]
+        },
+        "description": "Starts the next session. Confirms session_energy_kwh is 0.00 again."
       }
     }
   ]
